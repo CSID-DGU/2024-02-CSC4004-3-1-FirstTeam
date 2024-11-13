@@ -55,9 +55,10 @@ class MyApp extends StatelessWidget {
       /* Route 설정 */
       initialRoute: '/',
       routes: {
-        '/': (context) => const SplashScreen(),
+        '/': (context) => const SplashPage(),
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignupPage(),
+        '/home': (context) => const ChatAppMainPage(),
       },
     );
   }

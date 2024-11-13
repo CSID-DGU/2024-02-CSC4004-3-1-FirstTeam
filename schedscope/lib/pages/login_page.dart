@@ -65,7 +65,7 @@ class _LoginPageState extends State<LoginPage> {
               ElevatedButton(
                 key: const Key('login_button'),
                 onPressed: () {
-                  //Navigator.pushNamed(context, '/home');
+                  Navigator.pushReplacementNamed(context, '/home');
                 },
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 48),
