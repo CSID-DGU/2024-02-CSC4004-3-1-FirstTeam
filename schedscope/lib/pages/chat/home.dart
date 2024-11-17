@@ -34,6 +34,19 @@ class _ChatAppMainPageState extends State<ChatAppMainPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_titles[_selectedIndex]),
+        //backgroundColor: const Color(0xFF3498DB),
+        titleTextStyle: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w500,
+          color: Colors.black,
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(4.0),
+          child: Container(
+            color: Colors.black,
+            height: 1.0,
+          ),
+        ),
       ),
       body: Center(
         child: _widgetOptions.elementAt(_selectedIndex),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/themed_input.dart';
 
 class SignupPage extends StatefulWidget {
@@ -14,19 +16,84 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
-
-  // 비밀번호 표시/숨김 토글
   bool _obscureText = true;
+  bool _isLoading = false;
+
   void _togglePasswordVisibility() {
     setState(() {
       _obscureText = !_obscureText;
     });
   }
 
+  Future<void> _signup() async {
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('비밀번호가 일치하지 않습니다.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      UserCredential userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+
+      // // Firestore에 유저 정보 저장
+      // await FirebaseFirestore.instance
+      //     .collection('User')
+      //     .doc(userCredential.user!.uid)
+      //     .set({
+      //   'name': _nicknameController.text,
+      //   'email': _emailController.text,
+      //   'profile_image': '',
+      // });
+
+      try {
+        await FirebaseFirestore.instance
+            .collection('User')
+            .doc(userCredential.user!.uid)
+            .set({
+          'name': _nicknameController.text,
+          'email': _emailController.text,
+          'profile_image': '',
+        });
+        print("Firestore에 데이터 저장 완료");
+      } catch (e) {
+        print("Firestore 저장 오류: $e");
+      }
+
+      // 회원가입 성공 시 홈 페이지로 이동
+      Navigator.pushReplacementNamed(context, '/login');
+    } on FirebaseAuthException catch (e) {
+      String message;
+      if (e.code == 'weak-password') {
+        message = '6자리 이상의 비밀번호를 입력해주세요.';
+      } else if (e.code == 'email-already-in-use') {
+        message = '이미 사용 중인 이메일입니다.';
+      } else {
+        message = '회원가입에 실패했습니다. 올바른 정보를 입력해주세요.';
+      }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        title: const Text('회원가입'),
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -80,16 +147,16 @@ class _SignupPageState extends State<SignupPage> {
               const SizedBox(height: 24),
 
               /* 가입하기 버튼 */
-              ElevatedButton(
-                key: const Key('signup_button'),
-                onPressed: () {
-                  // 가입 로직 추가
-                },
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-                child: const Text('가입하기', style: TextStyle(fontSize: 16)),
-              ),
+              _isLoading
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                      key: const Key('signup_button'),
+                      onPressed: _signup,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                      child: const Text('가입하기', style: TextStyle(fontSize: 16)),
+                    ),
             ],
           ),
         ),
