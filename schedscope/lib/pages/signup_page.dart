@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/themed_input.dart';
 
 class SignupPage extends StatefulWidget {
@@ -42,6 +43,31 @@ class _SignupPageState extends State<SignupPage> {
         email: _emailController.text,
         password: _passwordController.text,
       );
+
+      // // Firestore에 유저 정보 저장
+      // await FirebaseFirestore.instance
+      //     .collection('User')
+      //     .doc(userCredential.user!.uid)
+      //     .set({
+      //   'name': _nicknameController.text,
+      //   'email': _emailController.text,
+      //   'profile_image': '',
+      // });
+
+      try {
+        await FirebaseFirestore.instance
+            .collection('User')
+            .doc(userCredential.user!.uid)
+            .set({
+          'name': _nicknameController.text,
+          'email': _emailController.text,
+          'profile_image': '',
+        });
+        print("Firestore에 데이터 저장 완료");
+      } catch (e) {
+        print("Firestore 저장 오류: $e");
+      }
+
       // 회원가입 성공 시 홈 페이지로 이동
       Navigator.pushReplacementNamed(context, '/login');
     } on FirebaseAuthException catch (e) {
