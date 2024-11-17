@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/themed_input.dart';
+import '../widgets/alert_dialog.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -27,9 +28,14 @@ class _SignupPageState extends State<SignupPage> {
 
   Future<void> _signup() async {
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('비밀번호가 일치하지 않습니다.')),
-      );
+      String message = '비밀번호가 일치하지 않습니다.';
+      _showErrorDialog(message);
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(
+      //     content: const Text('비밀번호가 일치하지 않습니다.'),
+      //     backgroundColor: Theme.of(context).colorScheme.secondary,
+      //   ),
+      // );
       return;
     }
 
@@ -44,16 +50,6 @@ class _SignupPageState extends State<SignupPage> {
         password: _passwordController.text,
       );
 
-      // // Firestore에 유저 정보 저장
-      // await FirebaseFirestore.instance
-      //     .collection('User')
-      //     .doc(userCredential.user!.uid)
-      //     .set({
-      //   'name': _nicknameController.text,
-      //   'email': _emailController.text,
-      //   'profile_image': '',
-      // });
-
       try {
         await FirebaseFirestore.instance
             .collection('User')
@@ -63,29 +59,46 @@ class _SignupPageState extends State<SignupPage> {
           'email': _emailController.text,
           'profile_image': '',
         });
-        print("Firestore에 데이터 저장 완료");
+        print("Firestore에 데이터 저장 완료"); //log
       } catch (e) {
-        print("Firestore 저장 오류: $e");
+        print("Firestore 저장 오류: $e"); //log
       }
 
-      // 회원가입 성공 시 홈 페이지로 이동
+      // 회원가입 성공 시 로그인 페이지로 이동
       Navigator.pushReplacementNamed(context, '/login');
     } on FirebaseAuthException catch (e) {
       String message;
       if (e.code == 'weak-password') {
-        message = '6자리 이상의 비밀번호를 입력해주세요.';
+        message = '비밀번호를 6자 이상 입력해주세요.';
       } else if (e.code == 'email-already-in-use') {
         message = '이미 사용 중인 이메일입니다.';
       } else {
-        message = '회원가입에 실패했습니다. 올바른 정보를 입력해주세요.';
+        message = '회원가입에 실패했습니다.\n다시 시도해주세요.';
       }
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+      _showErrorDialog(message);
+    } catch (e) {
+      _showErrorDialog('서버와 통신 중 오류가 발생했습니다.');
     } finally {
       setState(() {
         _isLoading = false;
       });
     }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return CustomAlertDialog(
+          title: '',
+          content: message,
+          onConfirm: () {
+            Navigator.of(context).pop();
+          },
+        );
+      },
+    );
   }
 
   @override
