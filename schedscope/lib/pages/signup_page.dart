@@ -43,7 +43,7 @@ class _SignupPageState extends State<SignupPage> {
         password: _passwordController.text,
       );
       // 회원가입 성공 시 홈 페이지로 이동
-      Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, '/login');
     } on FirebaseAuthException catch (e) {
       String message;
       if (e.code == 'weak-password') {
