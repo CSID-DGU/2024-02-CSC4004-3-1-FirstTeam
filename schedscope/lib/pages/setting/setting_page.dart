@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../widgets/alert_dialog.dart'; // CustomAlertDialog 위젯을 가져옴
+import '../../widgets/alert_dialog.dart';
+import 'edit_profile_page.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -98,8 +99,16 @@ class _SettingPageState extends State<SettingPage> {
                           CustomButton(
                             icon: Icons.account_circle,
                             text: '프로필 수정',
-                            onPressed: () {
-                              // 프로필 수정 페이지로 이동
+                            onPressed: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const EditProfilePage(),
+                                ),
+                              );
+                              if (result == true) {
+                                _fetchUserData(); // 프로필 수정 후 데이터 갱신
+                              }
                             },
                           ),
                           const SizedBox(height: 12),
