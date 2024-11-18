@@ -57,15 +57,15 @@ class _SignupPageState extends State<SignupPage> {
             .set({
           'name': _nicknameController.text,
           'email': _emailController.text,
-          'profile_image': '',
+          'profile_image':
+              'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
         });
         print("Firestore에 데이터 저장 완료"); //log
       } catch (e) {
         print("Firestore 저장 오류: $e"); //log
       }
-
-      // 회원가입 성공 시 로그인 페이지로 이동
-      Navigator.pushReplacementNamed(context, '/login');
+      Navigator.pushReplacementNamed(
+          context, '/login'); // 회원가입 성공 시 로그인 페이지로 이동
     } on FirebaseAuthException catch (e) {
       String message;
       if (e.code == 'weak-password') {
