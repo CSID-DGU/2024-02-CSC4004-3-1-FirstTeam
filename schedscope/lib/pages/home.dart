@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'setting/setting_page.dart';
 
 class ChatAppMainPage extends StatefulWidget {
   const ChatAppMainPage({super.key});
@@ -10,10 +11,11 @@ class ChatAppMainPage extends StatefulWidget {
 class _ChatAppMainPageState extends State<ChatAppMainPage> {
   int _selectedIndex = 0;
 
+  // 페이지 별 위젯 연결
   static const List<Widget> _widgetOptions = <Widget>[
     Text('친구 목록', style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
     Text('채팅', style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
-    Text('마이페이지', style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
+    Center(child: SettingPage()), // setting_page.dart와 연결
   ];
 
   /// 상단 AppBar에 표시될 제목
@@ -34,7 +36,6 @@ class _ChatAppMainPageState extends State<ChatAppMainPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_titles[_selectedIndex]),
-        //backgroundColor: const Color(0xFF3498DB),
         titleTextStyle: const TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.w500,
@@ -67,7 +68,6 @@ class _ChatAppMainPageState extends State<ChatAppMainPage> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: const Color(0xFF3498DB),
         onTap: _onItemTapped,
       ),
     );

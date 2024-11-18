@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/themed_input.dart';
+import '../widgets/alert_dialog.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,24 +16,27 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscureText = true;
   bool _isLoading = false;
 
+  /* 비밀번호 가리기/보이기 토글 함수 */
   void _togglePasswordVisibility() {
     setState(() {
       _obscureText = !_obscureText;
     });
   }
 
+  /* 로그인 처리 함수 */
   Future<void> _login() async {
     setState(() {
       _isLoading = true;
     });
 
+    // Firebase Auth를 이용한 로그인
     try {
       UserCredential userCredential =
           await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text,
         password: _passwordController.text,
       );
-      Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, '/home'); // 로그인 성공 시 홈 화면으로 이동
     } on FirebaseAuthException catch (e) {
       String message;
       if (e.code == 'user-not-found') {
@@ -40,15 +44,31 @@ class _LoginPageState extends State<LoginPage> {
       } else if (e.code == 'wrong-password') {
         message = '잘못된 비밀번호입니다.';
       } else {
-        message = '로그인에 실패했습니다.';
+        message = '로그인에 실패했습니다.\n다시 시도해주세요.';
       }
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+      _showErrorDialog(message);
     } finally {
       setState(() {
         _isLoading = false;
       });
     }
+  }
+
+  /* 오류 알림창 표시 함수 */
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return CustomAlertDialog(
+          title: '',
+          content: message,
+          onConfirm: () {
+            Navigator.of(context).pop();
+          },
+        );
+      },
+    );
   }
 
   @override
