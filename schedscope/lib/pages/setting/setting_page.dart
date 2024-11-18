@@ -41,7 +41,7 @@ class _SettingPageState extends State<SettingPage> {
   Future<void> _confirmLogout() async {
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, // 다이얼로그 외부를 터치해도 닫히지 않음
+      barrierDismissible: true, // 다이얼로그 외부를 터치하여 취소 가능
       builder: (BuildContext context) {
         return CustomAlertDialog(
           title: '로그아웃',

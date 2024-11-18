@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'setting_page.dart';
+import 'setting/setting_page.dart';
 
 class ChatAppMainPage extends StatefulWidget {
   const ChatAppMainPage({super.key});
