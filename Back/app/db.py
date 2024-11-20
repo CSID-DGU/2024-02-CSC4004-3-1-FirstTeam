@@ -17,6 +17,6 @@ messages_ref = db.reference("messages")
 inviteCodes_ref = db.reference("inviteCodes")
 friendLists_ref = db.reference("friendLists")
 chatRooms_ref = db.reference("chatRooms")
+roomMember_ref = db.reference("RoomMembers")
 budgets_ref = db.reference("budgets")
-
 
