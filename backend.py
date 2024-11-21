@@ -18,9 +18,10 @@ def parse_request():
         json={'model': 'llama3.2', 'prompt': question})
     
     result = response.json()
-    
-    # Parse function (placeholder for now)
-    def parse(text):
-        return text
-        
     return jsonify({'response': parse(result['response'])})
+
+
+## FUNCTIONS
+# Parse function (placeholder for now)
+def parse(text):
+    return text
