@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:schedscope/pages/chat/chat_room_list.dart';
 import 'setting/setting_page.dart';
 
 class ChatAppMainPage extends StatefulWidget {
@@ -12,10 +13,17 @@ class _ChatAppMainPageState extends State<ChatAppMainPage> {
   int _selectedIndex = 0;
 
   // 페이지 별 위젯 연결
-  static const List<Widget> _widgetOptions = <Widget>[
-    Text('친구 목록', style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
-    Text('채팅', style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
-    Center(child: SettingPage()), // setting_page.dart와 연결
+  // static const List<Widget> _widgetOptions = <Widget>[
+  //   Text('친구 목록', style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
+  //   Center(child: ChatRoomList());
+  //   Center(child: SettingPage()), // setting_page.dart와 연결
+  // ];
+
+  static final List<Widget> _widgetOptions = <Widget>[
+    const Text('친구 목록',
+        style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
+    Center(child: ChatRoomList()),
+    const Center(child: SettingPage()), // setting_page.dart와 연결
   ];
 
   /// 상단 AppBar에 표시될 제목
