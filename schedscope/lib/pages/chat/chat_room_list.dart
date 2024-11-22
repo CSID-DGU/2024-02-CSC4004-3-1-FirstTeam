@@ -57,7 +57,7 @@ class _ChatRoomListState extends State<ChatRoomList> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0x00ffffff), // 배경색 변경
+      color: const Color(0xffffffff), // 배경색 변경
       padding: const EdgeInsets.all(10),
       child: ListView.builder(
         itemCount: chatRooms.length,

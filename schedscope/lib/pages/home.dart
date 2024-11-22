@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:schedscope/pages/chat/chat_room_list.dart';
 import 'setting/setting_page.dart';
+import 'chat/create_room_dialog.dart';
 
 class ChatAppMainPage extends StatefulWidget {
   const ChatAppMainPage({super.key});
@@ -15,7 +16,7 @@ class _ChatAppMainPageState extends State<ChatAppMainPage> {
   static final List<Widget> _widgetOptions = <Widget>[
     const Text('친구 목록',
         style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
-    const Center(child: ChatRoomList()),
+    const Center(child: ChatRoomList()), // chat_room_list.dart와 연결
     const Center(child: SettingPage()), // setting_page.dart와 연결
   ];
 
@@ -54,8 +55,7 @@ class _ChatAppMainPageState extends State<ChatAppMainPage> {
                 IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: () {
-                    // 방 만들기 아이콘 클릭 시 동작
-                    // 여기에 방 만들기 기능을 추가하세요.
+                    showCreateRoomDialog(context); // 방 만들기 다이얼로그 호출
                   },
                 ),
               ]
