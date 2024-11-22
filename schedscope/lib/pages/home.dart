@@ -12,17 +12,10 @@ class ChatAppMainPage extends StatefulWidget {
 class _ChatAppMainPageState extends State<ChatAppMainPage> {
   int _selectedIndex = 0;
 
-  // 페이지 별 위젯 연결
-  // static const List<Widget> _widgetOptions = <Widget>[
-  //   Text('친구 목록', style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
-  //   Center(child: ChatRoomList());
-  //   Center(child: SettingPage()), // setting_page.dart와 연결
-  // ];
-
   static final List<Widget> _widgetOptions = <Widget>[
     const Text('친구 목록',
         style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
-    Center(child: ChatRoomList()),
+    const Center(child: ChatRoomList()),
     const Center(child: SettingPage()), // setting_page.dart와 연결
   ];
 
@@ -56,6 +49,17 @@ class _ChatAppMainPageState extends State<ChatAppMainPage> {
             height: 1.0,
           ),
         ),
+        actions: _selectedIndex == 1
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () {
+                    // 방 만들기 아이콘 클릭 시 동작
+                    // 여기에 방 만들기 기능을 추가하세요.
+                  },
+                ),
+              ]
+            : null,
       ),
       body: Center(
         child: _widgetOptions.elementAt(_selectedIndex),
