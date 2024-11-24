@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final Map<String, dynamic> chatRoom;
@@ -48,9 +49,52 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     });
   }
 
-  // 사이드바 화면
-  void _showSideBar(BuildContext context) {
-    Scaffold.of(context).openEndDrawer();
+  // // 사이드바 화면
+  // void _showSideBar(BuildContext context) {
+  //   Scaffold.of(context).openEndDrawer();
+  // }
+
+  // 초대 코드 다이얼로그 표시 함수
+  void _showInviteCodeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Center(child: Text('초대 코드')),
+          content: SingleChildScrollView(
+            child: Center(
+              child: Text(widget.chatRoom['id']),
+            ),
+          ),
+          actions: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  child: const Text('복사'),
+                  onPressed: () {
+                    Clipboard.setData(
+                        ClipboardData(text: widget.chatRoom['id']));
+                    Navigator.of(context).pop(); // 다이얼로그 닫기
+                    Navigator.of(context).pop(); // 사이드바 닫기
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('초대 코드가 복사되었습니다.')),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8), // 버튼 사이의 간격
+                TextButton(
+                  child: const Text('닫기'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -100,6 +144,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         //   ),
         // ],
       ),
+      /* 사이드바 */
       endDrawer: Drawer(
         child: Container(
           padding: const EdgeInsets.all(16.0),
@@ -107,25 +152,28 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  // 초대 버튼
                   IconButton(
                     icon: const Icon(Icons.person_add),
                     onPressed: () {
-                      // 다른 사용자 초대하기 동작
+                      _showInviteCodeDialog(context); // 초대 코드 다이얼로그 표시
                     },
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.exit_to_app),
-                    onPressed: () {
-                      // 방 나가기 동작
-                    },
-                  ),
+                  // 알림 토글 버튼
                   IconButton(
                     icon: Icon(_notificationsEnabled
                         ? Icons.notifications
                         : Icons.notifications_off),
                     onPressed: _toggleNotifications,
+                  ),
+                  // 방 나가기 버튼
+                  IconButton(
+                    icon: const Icon(Icons.exit_to_app),
+                    onPressed: () {
+                      // 방 나가기 동작
+                    },
                   ),
                 ],
               ),
@@ -137,13 +185,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 8.0),
+                height: 1.0,
+                color: Colors.black,
+              ),
               const SizedBox(height: 16.0),
-              const Text(
-                '참여자 목록',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+              const Row(
+                children: [
+                  Icon(Icons.group, size: 20),
+                  SizedBox(width: 8), // 아이콘과 텍스트 사이의 간격
+                  Text(
+                    '참여자',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
               Expanded(
                 child: StreamBuilder<DocumentSnapshot>(
