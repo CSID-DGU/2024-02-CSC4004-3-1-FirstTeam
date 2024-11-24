@@ -16,6 +16,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final TextEditingController _messageController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  bool _notificationsEnabled = true;
 
   // 메시지 전송 함수
   void _sendMessage() async {
@@ -35,9 +36,21 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   // 유저 이름 가져오기 함수
-  Future<String> _getUserName(String userId) async {
+  Future<Map<String, dynamic>> _getUserInfo(String userId) async {
     final userDoc = await _firestore.collection('User').doc(userId).get();
-    return userDoc.data()?['name'] ?? 'Unknown';
+    return userDoc.data() ?? {};
+  }
+
+  // 알림 토글 함수
+  void _toggleNotifications() {
+    setState(() {
+      _notificationsEnabled = !_notificationsEnabled;
+    });
+  }
+
+  // 사이드바 화면
+  void _showSideBar(BuildContext context) {
+    Scaffold.of(context).openEndDrawer();
   }
 
   @override
@@ -70,19 +83,112 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-              icon: const Icon(Icons.edit_calendar),
-              onPressed: () {
-                // 일정 관리 화면으로 이동
-              }),
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              // 사이드 바 추가 동작
-            },
+
+        // 액션 아이콘
+        // actions: [
+        //   IconButton(
+        //     icon: const Icon(Icons.edit_calendar),
+        //     onPressed: () {
+        //       // 일정 관리 화면으로 이동
+        //     },
+        //   ),
+        //   IconButton(
+        //     icon: const Icon(Icons.more_vert),
+        //     onPressed: () {
+        //       _showSideBar(context); // 사이드바 표시
+        //     },
+        //   ),
+        // ],
+      ),
+      endDrawer: Drawer(
+        child: Container(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.person_add),
+                    onPressed: () {
+                      // 다른 사용자 초대하기 동작
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.exit_to_app),
+                    onPressed: () {
+                      // 방 나가기 동작
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(_notificationsEnabled
+                        ? Icons.notifications
+                        : Icons.notifications_off),
+                    onPressed: _toggleNotifications,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16.0),
+              Text(
+                widget.chatRoom['name'],
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              const Text(
+                '참여자 목록',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Expanded(
+                child: StreamBuilder<DocumentSnapshot>(
+                  stream: _firestore
+                      .collection('ChatRoom')
+                      .doc(widget.chatRoom['id'])
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final roomData =
+                        snapshot.data!.data() as Map<String, dynamic>;
+                    final participants =
+                        List<String>.from(roomData['room_member_id'] ?? []);
+                    return ListView.builder(
+                      itemCount: participants.length,
+                      itemBuilder: (context, index) {
+                        final participantId = participants[index];
+                        return FutureBuilder<Map<String, dynamic>>(
+                          future: _getUserInfo(participantId),
+                          builder: (context, userInfoSnapshot) {
+                            if (!userInfoSnapshot.hasData) {
+                              return const ListTile(
+                                title: Text('Loading...'),
+                              );
+                            }
+                            final userInfo = userInfoSnapshot.data!;
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundImage: NetworkImage(
+                                    userInfo['profile_image'] ?? ''),
+                              ),
+                              title: Text(userInfo['name'] ?? 'Unknown'),
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       body: Container(
         color: const Color(0xFFFCFCF7), // 채팅방 배경색 변경
@@ -111,13 +217,20 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           message.data() as Map<String, dynamic>;
                       final isMe =
                           messageData['user_id'] == _auth.currentUser?.uid;
-                      return FutureBuilder<String>(
-                        future: _getUserName(messageData['user_id']),
-                        builder: (context, userNameSnapshot) {
-                          if (!userNameSnapshot.hasData) {
+                      return FutureBuilder<Map<String, dynamic>>(
+                        future: _getUserInfo(messageData['user_id']),
+                        builder: (context, userInfoSnapshot) {
+                          if (!userInfoSnapshot.hasData) {
                             return const SizedBox.shrink();
                           }
+                          final userInfo = userInfoSnapshot.data!;
                           return ListTile(
+                            leading: isMe
+                                ? null
+                                : CircleAvatar(
+                                    backgroundImage: NetworkImage(
+                                        userInfo['profile_image'] ?? ''),
+                                  ),
                             title: Align(
                               alignment: isMe
                                   ? Alignment.centerRight
@@ -135,7 +248,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                   children: [
                                     if (!isMe)
                                       Text(
-                                        userNameSnapshot.data!,
+                                        userInfo['name'] ?? 'Unknown',
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           color: Colors.black,
