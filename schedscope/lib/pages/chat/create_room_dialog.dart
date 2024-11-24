@@ -71,6 +71,7 @@ Future<void> _createChatRoom(String roomName) async {
       'room_name': roomName,
       'participants': 1,
       'created_at': FieldValue.serverTimestamp(),
+      'room_member_id': [user.uid], // room_member_id 배열에 자신의 user_id 추가
     });
 
     final roomMemberRef = firestore.collection('RoomMember').doc(user.uid);
