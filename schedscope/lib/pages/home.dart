@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:schedscope/pages/chat/chat_room_list.dart';
 import 'setting/setting_page.dart';
-import 'chat/create_room_dialog.dart';
 
 class ChatAppMainPage extends StatefulWidget {
   const ChatAppMainPage({super.key});
@@ -50,16 +49,6 @@ class _ChatAppMainPageState extends State<ChatAppMainPage> {
             height: 1.0,
           ),
         ),
-        actions: _selectedIndex == 1
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () {
-                    showCreateRoomDialog(context); // 방 만들기 다이얼로그 호출
-                  },
-                ),
-              ]
-            : null,
       ),
       body: Center(
         child: _widgetOptions.elementAt(_selectedIndex),

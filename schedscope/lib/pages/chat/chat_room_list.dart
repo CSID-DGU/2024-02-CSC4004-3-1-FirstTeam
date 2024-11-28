@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chat_room.dart'; // ChatRoomScreen 임포트
+import 'create_room_dialog.dart'; // 방 생성 다이얼로그 임포트
 
 class ChatRoomList extends StatefulWidget {
   const ChatRoomList({super.key});
@@ -15,15 +16,28 @@ class _ChatRoomListState extends State<ChatRoomList> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Map<String, dynamic>> chatRooms = [];
+  User? _user;
+  bool _showButtons = false;
 
   @override
   void initState() {
     super.initState();
+    _fetchUser();
     _fetchChatRooms();
   }
 
+  void _toggleButtons() {
+    setState(() {
+      _showButtons = !_showButtons;
+    });
+  }
+
+  void _fetchUser() {
+    _user = _auth.currentUser;
+  }
+
   Future<void> _fetchChatRooms() async {
-    final user = _auth.currentUser;
+    final user = _user;
     if (user != null) {
       final roomMemberSnapshot =
           await _firestore.collection('RoomMember').doc(user.uid).get();
@@ -54,61 +68,176 @@ class _ChatRoomListState extends State<ChatRoomList> {
     }
   }
 
+  Future<void> _joinChatRoom(BuildContext context) async {
+    final TextEditingController roomIdController = TextEditingController();
+    final String? userId = _user?.uid; // 자신의 user_id를 여기에 설정
+
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('사용자 정보를 가져올 수 없습니다. 다시 로그인 해주세요.')),
+      );
+      return;
+    }
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('새 채팅 참여하기'),
+          content: TextField(
+            controller: roomIdController,
+            decoration: const InputDecoration(hintText: 'Room ID를 입력하세요'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                final String roomId = roomIdController.text;
+                final DocumentReference roomRef = FirebaseFirestore.instance
+                    .collection('ChatRoom')
+                    .doc(roomId);
+                final DocumentReference userRef = FirebaseFirestore.instance
+                    .collection('RoomMember')
+                    .doc(userId);
+
+                final DocumentSnapshot roomSnapshot = await roomRef.get();
+
+                if (roomSnapshot.exists) {
+                  await roomRef.update({
+                    'participants': FieldValue.increment(1),
+                    'room_member_id': FieldValue.arrayUnion([userId]),
+                  });
+
+                  await userRef.update({
+                    'room_id_list': FieldValue.arrayUnion([roomId]),
+                  });
+
+                  Navigator.of(context).pop();
+                } else {
+                  // 방이 존재하지 않는 경우
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('해당 Room ID가 존재하지 않습니다.')),
+                  );
+                }
+              },
+              child: const Text('참여하기'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('취소'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xffffffff), // 배경색 변경
-      padding: const EdgeInsets.all(10),
-      child: ListView.builder(
-        itemCount: chatRooms.length,
-        itemBuilder: (context, index) {
-          final chatRoom = chatRooms[index];
-          return Container(
-            margin: const EdgeInsets.symmetric(vertical: 5), // 위아래 간격 추가
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                  vertical: 10, horizontal: 15), // 패딩 추가
-              tileColor: Colors.white, // 타일 배경색
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10), // 모서리 둥글게
-              ),
-              leading: CircleAvatar(
-                backgroundColor: Colors.blue,
-                child: Text(
-                  chatRoom['name']![0], // 채팅방 이름 첫 글자 표시
-                  style: const TextStyle(color: Colors.white),
+    return Scaffold(
+      // appBar: AppBar(
+      //   title: const Text('채팅방 목록'),
+      // ),
+      body: Container(
+        color: const Color(0xffffffff), // 배경색 변경
+        padding: const EdgeInsets.all(10),
+        child: ListView.builder(
+          itemCount: chatRooms.length,
+          itemBuilder: (context, index) {
+            final chatRoom = chatRooms[index];
+            return Container(
+              margin: const EdgeInsets.symmetric(vertical: 5), // 위아래 간격 추가
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                    vertical: 10, horizontal: 15), // 패딩 추가
+                tileColor: Colors.white, // 타일 배경색
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10), // 모서리 둥글게
                 ),
-              ),
-              title: Text(
-                chatRoom['name']!,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.group, color: Colors.grey), // 아이콘 추가
-                  const SizedBox(width: 4), // 아이콘과 텍스트 사이의 간격
-                  Text(
-                    '${chatRoom['participants']}명', // 참여자 수를 오른쪽에 표시
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                leading: CircleAvatar(
+                  backgroundColor: Colors.blue,
+                  child: Text(
+                    chatRoom['name']![0], // 채팅방 이름 첫 글자 표시
+                    style: const TextStyle(color: Colors.white),
                   ),
+                ),
+                title: Text(
+                  chatRoom['name']!,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.group, color: Colors.grey), // 아이콘 추가
+                    const SizedBox(width: 4), // 아이콘과 텍스트 사이의 간격
+                    Text(
+                      '${chatRoom['participants']}명', // 참여자 수를 오른쪽에 표시
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ],
+                ),
+                onTap: () {
+                  // 채팅방 항목을 클릭했을 때 동작
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatRoomScreen(chatRoom: chatRoom),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ),
+      floatingActionButton: Stack(
+        children: [
+          Positioned(
+            bottom: 80,
+            right: 16,
+            child: AnimatedOpacity(
+              opacity: _showButtons ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 300),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.lightBlue,
+                    ),
+                    onPressed: () {
+                      showCreateRoomDialog(context); // 방 만들기 다이얼로그 호출
+                    },
+                    child: const Text('채팅방 생성하기'),
+                  ),
+                  const SizedBox(height: 15), // 버튼 사이의 간격
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.lightBlue,
+                    ),
+                    onPressed: () {
+                      _joinChatRoom(context);
+                    },
+                    child: const Text('새 채팅 참여하기'),
+                  ),
+                  const SizedBox(height: 10), // 버튼 사이의 간격
                 ],
               ),
-              onTap: () {
-                // 채팅방 항목을 클릭했을 때 동작
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChatRoomScreen(chatRoom: chatRoom),
-                  ),
-                );
-              },
             ),
-          );
-        },
+          ),
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: FloatingActionButton(
+              onPressed: _toggleButtons,
+              child: Icon(_showButtons ? Icons.close : Icons.add),
+            ),
+          ),
+        ],
       ),
     );
   }
