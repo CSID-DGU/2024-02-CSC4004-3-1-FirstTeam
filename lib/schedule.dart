@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // DateFormat을 사용하기 위한 필요한 패키지
 
 class SchedulePage extends StatefulWidget {
   @override
@@ -23,6 +24,156 @@ class _SchedulePageState extends State<SchedulePage> {
       'amount': '20,000원',
     },
   ];
+// 텍스트 필드 컨트롤러
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController dateController = TextEditingController();
+  final TextEditingController timeController = TextEditingController();
+  final TextEditingController locationController = TextEditingController();
+  final TextEditingController detailsController = TextEditingController();
+  final TextEditingController amountController = TextEditingController();
+
+  // 일정 추가 함수
+  void addSchedule() {
+    final title = titleController.text;
+    final date = dateController.text;
+    final time = timeController.text;
+    final location = locationController.text;
+    final details = detailsController.text;
+    final amount = amountController.text;
+
+      // 제목만 입력되면 일정 추가
+      if (title.isNotEmpty) {
+        setState(() {
+          schedules.add({
+            'title': title,
+            'date': date,
+            'time': time,
+            'location': location,
+            'details': details,
+            'amount': amount,
+          });
+        });
+
+        // 폼 초기화
+        titleController.clear();
+        timeController.clear();
+        dateController.clear();
+        locationController.clear();
+        detailsController.clear();
+        amountController.clear();
+
+        Navigator.pop(context); // 다이얼로그 닫기
+      } else {
+        // 제목이 비어 있으면 경고 메시지
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text('입력 오류'),
+              content: Text('제목은 필수 항목입니다.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('확인'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    }
+  // 새로운 일정 추가 다이얼로그
+  void showAddScheduleDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            '새로운 일정 추가',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(labelText: '제목'),
+              ),
+          TextField(
+            controller: dateController,
+            decoration: InputDecoration(labelText: '날짜'),
+            readOnly: true, // 텍스트 필드 수정 불가
+            onTap: () async {
+              // 시작 날짜 선택
+              DateTime? startDate = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now(),
+                firstDate: DateTime(1900),
+                lastDate: DateTime.now(),
+              );
+
+              if (startDate != null) {
+                // 종료 날짜 선택
+                DateTime? endDate = await showDatePicker(
+                  context: context,
+                  initialDate: startDate.add(Duration(days: 1)),
+                  firstDate: startDate,
+                  lastDate: DateTime.now(),
+                );
+
+                if (endDate != null) {
+                  // 날짜 형식 지정
+                  DateFormat dateFormat = DateFormat('yyyy-MM-dd');
+                  String formattedStartDate = dateFormat.format(startDate);
+                  String formattedEndDate = dateFormat.format(endDate);
+
+                  setState(() {
+                    // 선택된 날짜를 텍스트 필드에 반영
+                    dateController.text = "$formattedStartDate~$formattedEndDate";
+                  });
+                }
+              }
+            },
+          ),
+              TextField(
+                controller: timeController,
+                decoration: InputDecoration(labelText: '시간'),
+              ),
+              TextField(
+                controller: locationController,
+                decoration: InputDecoration(labelText: '장소'),
+              ),
+              TextField(
+                controller: detailsController,
+                decoration: InputDecoration(labelText: '세부사항'),
+              ),
+              TextField(
+                controller: amountController,
+                decoration: InputDecoration(labelText: '금액'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // 다이얼로그 닫기
+              },
+              child: Text('취소'),
+            ),
+            ElevatedButton(
+              onPressed: addSchedule, // 일정 추가
+              child: Text('추가'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,12 +202,14 @@ class _SchedulePageState extends State<SchedulePage> {
       ),
       body: Stack(
         children: [
-          ListView.builder(
+      Expanded(
+          child: ListView.builder(
             itemCount: schedules.length,
             itemBuilder: (context, index) {
               final schedule = schedules[index];
               return Card(
-                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                margin: const EdgeInsets.symmetric(
+                    vertical: 10, horizontal: 15),
                 shape: RoundedRectangleBorder(
                   side: BorderSide(
                     width: 1,
@@ -72,7 +225,6 @@ class _SchedulePageState extends State<SchedulePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Row to display the circle and schedule count
                       Row(
                         children: [
                           Container(
@@ -93,6 +245,19 @@ class _SchedulePageState extends State<SchedulePage> {
                               ),
                             ),
                           ),
+                          Spacer(),
+                          IconButton(
+                            icon: Icon(
+                              Icons.delete,
+                              color: Colors.black,
+                              size: 30,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                schedules.removeAt(index); // 아이템 삭제
+                              });
+                            },
+                          ),
                         ],
                       ),
                       SizedBox(height: 10),
@@ -103,7 +268,6 @@ class _SchedulePageState extends State<SchedulePage> {
                           fontSize: 15,
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          height: 0,
                         ),
                       ),
                       SizedBox(height: 5),
@@ -114,7 +278,6 @@ class _SchedulePageState extends State<SchedulePage> {
                           fontSize: 15,
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          height: 0,
                         ),
                       ),
                       SizedBox(height: 5),
@@ -125,7 +288,8 @@ class _SchedulePageState extends State<SchedulePage> {
                       SizedBox(height: 5),
                       Text(
                         schedule['details']!,
-                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                        style: const TextStyle(
+                            fontSize: 14, color: Colors.grey),
                       ),
                       SizedBox(height: 10),
                       Text(
@@ -135,7 +299,6 @@ class _SchedulePageState extends State<SchedulePage> {
                           fontSize: 24,
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          height: 0,
                         ),
                       ),
                     ],
@@ -143,15 +306,14 @@ class _SchedulePageState extends State<SchedulePage> {
                 ),
               );
             },
+          )
           ),
           Positioned(
             left: 15,
             right: 15,
             bottom: 100,
             child: ElevatedButton(
-              onPressed: () {
-                // Implement your logic for adding a new schedule here
-              },
+              onPressed: showAddScheduleDialog,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 side: BorderSide(color: Colors.grey),
