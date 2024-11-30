@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+final NumberFormat formatter = NumberFormat('#,##0', 'ko_KR');
 class BudgetPage extends StatefulWidget {
   @override
   _BudgetPageState createState() => _BudgetPageState();
@@ -8,11 +10,11 @@ class BudgetPage extends StatefulWidget {
 class _BudgetPageState extends State<BudgetPage> {
   // 예산 항목 데이터
   final List<Map<String, dynamic>> budgetItems = [
-    {'name': '항목 이름', 'amount': 10000},
-    {'name': '항목 이름', 'amount': 10000},
-    {'name': '항목 이름', 'amount': 10000},
-    {'name': '항목 이름', 'amount': 10000},
-    {'name': '항목 이름', 'amount': 10000},
+    {'name': '딸기', 'amount': 10000},
+    {'name': '수박', 'amount': 10000},
+    {'name': '복숭아', 'amount': 10000},
+    {'name': '포도', 'amount': 10000},
+    {'name': '사과', 'amount': 10000},
   ];
 
   void main() {
@@ -33,10 +35,12 @@ class _BudgetPageState extends State<BudgetPage> {
       0,
           (sum, item) => sum + (item['amount'] as int? ?? 0),
     );
+
   }
 
   @override
   Widget build(BuildContext context) {
+    final NumberFormat formatter = NumberFormat('#,###');
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -80,7 +84,7 @@ class _BudgetPageState extends State<BudgetPage> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    '${getTotalAmount().toString()}원',
+                    '${formatter.format(getTotalAmount())}원',
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -120,9 +124,11 @@ class _BudgetPageState extends State<BudgetPage> {
                           style: const TextStyle(fontSize: 16),
                         ),
                         Text(
-                          '${item['amount']}원',
+                          '${formatter.format(item['amount'])}원',
                           style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -143,7 +149,16 @@ class _BudgetPageState extends State<BudgetPage> {
                     int newAmount = 0;
 
                     return AlertDialog(
-                      title: const Text('새로운 비용 추가'),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20), // 모서리를 둥글게
+                      ),
+                      title: Text(
+                        '새로운 비용 추가',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 18,
+                        ),
+                      ),
                       content: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -191,9 +206,15 @@ class _BudgetPageState extends State<BudgetPage> {
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 '새로운 비용 추가',
-                style: TextStyle(color: Colors.black),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.black.withOpacity(0.5),
+                  fontSize: 15,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),

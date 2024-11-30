@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'schedule.dart';
-import 'budget.dart';
+import 'package:intl/intl.dart';
 final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -169,17 +169,6 @@ class _MainScreenState extends State<MainScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => SchedulePage()),
-                );
-              },
-            ),
-          if (_currentIndex == 1)
-            IconButton(
-              icon: const Icon(Icons.monetization_on_rounded,
-                  color: Color(0xFF0F1828)),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => BudgetPage()),
                 );
               },
             ),
