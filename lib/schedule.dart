@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // DateFormat을 사용하기 위한 필요한 패키지
+import 'package:omni_datetime_picker/omni_datetime_picker.dart';
 
 class SchedulePage extends StatefulWidget {
   @override
@@ -104,45 +105,87 @@ class _SchedulePageState extends State<SchedulePage> {
                 controller: titleController,
                 decoration: InputDecoration(labelText: '제목'),
               ),
-          TextField(
-            controller: dateController,
-            decoration: InputDecoration(labelText: '날짜'),
-            readOnly: true, // 텍스트 필드 수정 불가
-            onTap: () async {
-              // 시작 날짜 선택
-              DateTime? startDate = await showDatePicker(
-                context: context,
-                initialDate: DateTime.now(),
-                firstDate: DateTime(1900),
-                lastDate: DateTime.now(),
-              );
+              TextField(
+                controller: dateController,
+                decoration: InputDecoration(labelText: '날짜'),
+                readOnly: true,
+                onTap: () async {
+                  // 시작 날짜 선택
+                  DateTime? startDate = await showOmniDateTimePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2100),
+                    is24HourMode: true,
+                    type: OmniDateTimePickerType.date,
+                  );
 
-              if (startDate != null) {
-                // 종료 날짜 선택
-                DateTime? endDate = await showDatePicker(
-                  context: context,
-                  initialDate: startDate.add(Duration(days: 1)),
-                  firstDate: startDate,
-                  lastDate: DateTime.now(),
-                );
+                  if (startDate != null) {
+                    // 종료 날짜 선택
+                    DateTime? endDate = await showOmniDateTimePicker(
+                      context: context,
+                      initialDate: startDate.add(Duration(days: 1)),
+                      firstDate: startDate,
+                      lastDate: DateTime(2100),
+                      is24HourMode: true,
+                      type: OmniDateTimePickerType.date,
+                    );
 
-                if (endDate != null) {
-                  // 날짜 형식 지정
-                  DateFormat dateFormat = DateFormat('yyyy-MM-dd');
-                  String formattedStartDate = dateFormat.format(startDate);
-                  String formattedEndDate = dateFormat.format(endDate);
+                    if (endDate != null) {
+                      // 날짜 형식 지정
+                      String formattedStartDate =
+                      DateFormat('yyyy-MM-dd').format(startDate);
+                      String formattedEndDate =
+                      DateFormat('yyyy-MM-dd').format(endDate);
 
-                  setState(() {
-                    // 선택된 날짜를 텍스트 필드에 반영
-                    dateController.text = "$formattedStartDate~$formattedEndDate";
-                  });
-                }
-              }
-            },
-          ),
+                      setState(() {
+                        dateController.text =
+                        "$formattedStartDate~$formattedEndDate";
+                      });
+                    }
+                  }
+                },
+              ),
               TextField(
                 controller: timeController,
                 decoration: InputDecoration(labelText: '시간'),
+                readOnly: true,
+                onTap: () async {
+                  // 시작 시간 선택
+                  DateTime? startTime = await showOmniDateTimePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2100),
+                    is24HourMode: true,
+                    type: OmniDateTimePickerType.time, // 시간 선택 전용
+                  );
+
+                  if (startTime != null) {
+                    // 종료 시간 선택
+                    DateTime? endTime = await showOmniDateTimePicker(
+                      context: context,
+                      initialDate: startTime.add(Duration(hours: 1)),
+                      firstDate: startTime,
+                      lastDate: startTime.add(Duration(hours: 12)),
+                      is24HourMode: true,
+                      type: OmniDateTimePickerType.time,
+                    );
+
+                    if (endTime != null) {
+                      // 시간 형식 지정
+                      String formattedStartTime =
+                      DateFormat('HH:mm').format(startTime);
+                      String formattedEndTime =
+                      DateFormat('HH:mm').format(endTime);
+
+                      setState(() {
+                        timeController.text =
+                        "$formattedStartTime~$formattedEndTime";
+                      });
+                    }
+                  }
+                },
               ),
               TextField(
                 controller: locationController,
@@ -175,6 +218,8 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -193,7 +238,7 @@ class _SchedulePageState extends State<SchedulePage> {
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF0F1828)), // Add new schedule icon
+            icon: const Icon(Icons.close, color: Color(0xFF0F1828)), // Add new schedule icon
             onPressed: () {
               Navigator.pop(context);
             },

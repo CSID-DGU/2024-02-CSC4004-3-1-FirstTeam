@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'schedule.dart';
+import 'budget.dart';
 final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
 
@@ -129,15 +130,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildSchedulePage(String title) {
-    return Center(
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 18, color: Colors.grey),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final List<Widget> _pages = [
@@ -167,25 +159,33 @@ class _MainScreenState extends State<MainScreen> {
             ),
           if (_currentIndex == 1)
             IconButton(
-              icon: const Icon(Icons.add_comment, color: Color(0xFF0F1828)), // 채팅방 추가 아이콘
-              onPressed: () {
-              },
+              icon: const Icon(Icons.add_comment, color: Color(0xFF0F1828)),
+              onPressed: () {},
             ),
           if (_currentIndex == 1)
             IconButton(
               icon: const Icon(Icons.calendar_today, color: Color(0xFF0F1828)),
               onPressed: () {
-                // Navigate to the SchedulePage when the calendar icon is pressed
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => SchedulePage()),
                 );
               },
             ),
-
+          if (_currentIndex == 1)
+            IconButton(
+              icon: const Icon(Icons.monetization_on_rounded,
+                  color: Color(0xFF0F1828)),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => BudgetPage()),
+                );
+              },
+            ),
         ],
       ),
-      body: _pages[_currentIndex],
+    body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -196,7 +196,7 @@ class _MainScreenState extends State<MainScreen> {
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.people, color: Colors.black),
+            icon: Icon(Icons.people_outline_outlined, color: Colors.black),
             activeIcon: CircleAvatar(
               backgroundColor: Color(0xFFE6F0FF),
               child: Icon(Icons.people, color: Color(0xFF0F1828)),
@@ -212,7 +212,7 @@ class _MainScreenState extends State<MainScreen> {
             label: '채팅',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings, color: Colors.black),
+            icon: Icon(Icons.settings_outlined, color: Colors.black),
             activeIcon: CircleAvatar(
               backgroundColor: Color(0xFFE6F0FF),
               child: Icon(Icons.settings, color: Color(0xFF0F1828)),
