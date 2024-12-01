@@ -1,5 +1,6 @@
-// contact_page.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ContactPage extends StatefulWidget {
   const ContactPage({super.key});
@@ -9,9 +10,47 @@ class ContactPage extends StatefulWidget {
 }
 
 class _ContactPageState extends State<ContactPage> {
-  final List<Map<String, String>> contacts = [
-    {'name': 'NAYEON', 'number': '010-4588-3051'},
-  ];
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  List<Map<String, dynamic>> contacts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchContacts();
+  }
+
+  Future<void> _fetchContacts() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      final friendListSnapshot =
+          await _firestore.collection('FriendList').doc(user.uid).get();
+
+      if (friendListSnapshot.exists) {
+        final friendIds = List<String>.from(
+            friendListSnapshot.data()?['friend_id_list'] ?? []);
+        List<Map<String, dynamic>> newContacts = [];
+        for (final friendId in friendIds) {
+          final userSnapshot =
+              await _firestore.collection('User').doc(friendId).get();
+          if (userSnapshot.exists) {
+            final userData = userSnapshot.data();
+            if (userData != null) {
+              newContacts.add({
+                'id': friendId,
+                'name': userData['name'],
+                'profile_image': userData['profile_image'],
+                'email': userData['email'], // 이메일 필드 추가
+              });
+            }
+          }
+        }
+        setState(() {
+          contacts = newContacts;
+        });
+      }
+    }
+  }
 
   void _addNewContact() {
     showDialog(
@@ -20,17 +59,18 @@ class _ContactPageState extends State<ContactPage> {
         String friendCode = '';
         return AlertDialog(
           title: const Center(child: Text('친구 코드 입력')),
-          content: const SingleChildScrollView(
+          content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: '친구 코드를 입력하세요',
                     hintStyle:
                         TextStyle(color: Colors.grey), // hintText 색상 연하게 설정
                   ),
                   textAlign: TextAlign.center, // 텍스트 필드 내용 가운데 정렬
+                  onChanged: (value) => friendCode = value,
                 ),
               ],
             ),
@@ -47,14 +87,47 @@ class _ContactPageState extends State<ContactPage> {
                 ),
                 const SizedBox(width: 8), // 버튼 사이의 간격
                 TextButton(
-                  onPressed: () {
-                    if (friendCode.isNotEmpty) {
-                      setState(() {
-                        // 친구 코드를 통해 친구를 추가하는 로직을 여기에 추가
-                        // 예시로 임시 데이터를 추가합니다.
-                        contacts.add({'name': '친구 이름', 'number': friendCode});
-                      });
-                      Navigator.of(context).pop();
+                  onPressed: () async {
+                    final user = _auth.currentUser;
+                    if (user != null && friendCode.isNotEmpty) {
+                      final userRef =
+                          _firestore.collection('User').doc(friendCode);
+                      final userSnapshot = await userRef.get();
+
+                      if (userSnapshot.exists) {
+                        final friendListRef =
+                            _firestore.collection('FriendList').doc(user.uid);
+                        final friendListSnapshot = await friendListRef.get();
+
+                        if (friendListSnapshot.exists) {
+                          final friendIds = List<String>.from(
+                              friendListSnapshot.data()?['friend_id_list'] ??
+                                  []);
+                          if (friendIds.contains(friendCode)) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('이미 등록된 친구입니다.')),
+                            );
+                          } else {
+                            await friendListRef.update({
+                              'friend_id_list':
+                                  FieldValue.arrayUnion([friendCode]),
+                            });
+                            _fetchContacts();
+                            Navigator.of(context).pop();
+                          }
+                        } else {
+                          await friendListRef.set({
+                            'friend_id_list': [friendCode],
+                          });
+                          _fetchContacts();
+                          Navigator.of(context).pop();
+                        }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('해당 친구 코드를 가진 사용자가 없습니다.')),
+                        );
+                      }
                     }
                   },
                   child: const Text('추가'),
@@ -67,12 +140,60 @@ class _ContactPageState extends State<ContactPage> {
     );
   }
 
+  void _showContactProfile(Map<String, dynamic> contact) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Center(child: Text('프로필 정보')),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 50,
+                  backgroundImage: NetworkImage(contact['profile_image'] ?? ''),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  contact['name'] ?? 'Unknown',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  contact['email'] ?? 'Unknown',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('닫기'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          '연락처',
+          '친구 목록',
           style: TextStyle(
             color: Colors.black,
             fontSize: 22,
@@ -80,8 +201,6 @@ class _ContactPageState extends State<ContactPage> {
           ),
         ),
         backgroundColor: Colors.white,
-        //elevation: 0.0,
-
         actions: [
           IconButton(
             icon: const Icon(Icons.person_add, color: Colors.black),
@@ -90,34 +209,35 @@ class _ContactPageState extends State<ContactPage> {
         ],
       ),
       body: Container(
-        color: const Color(0xFFFFFFFF),
+        color: const Color(0xFFFFFFFF), // 배경색 변경
         padding: const EdgeInsets.all(10),
         child: ListView.builder(
           itemCount: contacts.length,
           itemBuilder: (context, index) {
             final contact = contacts[index];
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.blue,
-                child: Text(
-                  contact['name']![0], // 이름 첫 글자 표시
-                  style: const TextStyle(color: Colors.white),
+            return Container(
+              margin: const EdgeInsets.symmetric(vertical: 5), // 위아래 간격 추가
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                    vertical: 10, horizontal: 15), // 패딩 추가
+                tileColor: Colors.white, // 타일 배경색
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10), // 모서리 둥글게
                 ),
-              ),
-              title: Text(
-                contact['name']!,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                leading: CircleAvatar(
+                  backgroundImage: NetworkImage(contact['profile_image'] ?? ''),
                 ),
+                title: Text(
+                  contact['name'] ?? 'Unknown',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                onTap: () {
+                  _showContactProfile(contact);
+                },
               ),
-              // subtitle: Text(
-              //   contact['number']!,
-              //   style: const TextStyle(fontSize: 14, color: Colors.grey),
-              // ),
-              onTap: () {
-                // 연락처 클릭 시 동작
-              },
             );
           },
         ),
