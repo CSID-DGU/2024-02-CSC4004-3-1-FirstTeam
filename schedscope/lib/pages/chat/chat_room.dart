@@ -170,6 +170,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         backgroundColor: Colors.white,
         centerTitle: true,
         elevation: 4.0, // AppBar에 옅은 그림자 추가
+        shadowColor: Colors.black.withOpacity(0.5),
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
