@@ -1,23 +1,51 @@
 import 'package:flutter/material.dart';
+import 'budget_state.dart';
 import 'budget.dart';
 import 'package:intl/intl.dart'; // DateFormat을 사용하기 위한 필요한 패키지
 import 'package:omni_datetime_picker/omni_datetime_picker.dart';
+import 'package:provider/provider.dart';
 
 class SchedulePage extends StatefulWidget {
   @override
   _SchedulePageState createState() => _SchedulePageState();
 }
 
+int calculateTotalBudget(List<Map<String, dynamic>> budgetItems) {
+  return budgetItems.fold(0, (sum, item) => sum + (item['amount'] as int));
+}
+
+// 금액 형식화 함수
+String formatCurrency(int amount) {
+  final NumberFormat formatter = NumberFormat('#,###');
+  return formatter.format(amount);
+}
+
 class _SchedulePageState extends State<SchedulePage> {
+  int? totalAmount;
+
+  @override
+  void initState() {
+    super.initState();
+    // 초기화 단계에서 Provider 데이터 가져오기
+    Future.delayed(Duration.zero, () {
+      final budgetState = Provider.of<BudgetState>(context, listen: false);
+      setState(() {
+        totalAmount = budgetState.getTotalAmount();
+      });
+    });
+  }
   // 일정 데이터 샘플
-  final List<Map<String, String?>> schedules = [
+  final List<Map<String, dynamic>> schedules = [
     {
       'title': '제주도 여행',
       'date': '2024.12.11(wed) - 2024.12.15(sun)',
       'time': null,
       'location': '제주도',
       'details': '애월',
-      'amount': '639,900원',
+      'budgetItems': [
+        {'name': '항공권', 'amount': 145500},
+        {'name': '숙소', 'amount': 334000},
+      ],
     },
     {
       'title': '종강 총회',
@@ -25,7 +53,9 @@ class _SchedulePageState extends State<SchedulePage> {
       'time': '19:00 - 21:00',
       'location': '충무로',
       'details': '20명 참가 예정',
-      'amount': '20,000원',
+      'budgetItems': [
+        {'name': '회식비', 'amount': 20000},
+      ],
     },
   ];
 
@@ -35,7 +65,6 @@ class _SchedulePageState extends State<SchedulePage> {
   final TextEditingController timeController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
   final TextEditingController detailsController = TextEditingController();
-  final TextEditingController amountController = TextEditingController();
 
   // 일정 추가 함수
   void addSchedule() {
@@ -44,7 +73,7 @@ class _SchedulePageState extends State<SchedulePage> {
     final time = timeController.text;
     final location = locationController.text;
     final details = detailsController.text;
-    final amount = amountController.text;
+    final budgetState = Provider.of<BudgetState>(context, listen: false);
 
     // 제목만 입력되면 일정 추가
     if (title.isNotEmpty) {
@@ -55,7 +84,6 @@ class _SchedulePageState extends State<SchedulePage> {
           'time': time,
           'location': location,
           'details': details,
-          'amount': amount,
         });
       });
 
@@ -65,7 +93,6 @@ class _SchedulePageState extends State<SchedulePage> {
       dateController.clear();
       locationController.clear();
       detailsController.clear();
-      amountController.clear();
 
       Navigator.pop(context); // 다이얼로그 닫기
     } else {
@@ -221,10 +248,6 @@ class _SchedulePageState extends State<SchedulePage> {
                     controller: detailsController,
                     decoration: InputDecoration(labelText: '세부사항'),
                   ),
-                  TextField(
-                    controller: amountController,
-                    decoration: InputDecoration(labelText: '금액'),
-                  ),
                 ],
               ),
             ),
@@ -286,6 +309,8 @@ class _SchedulePageState extends State<SchedulePage> {
             itemCount: schedules.length,
             itemBuilder: (context, index) {
               final schedule = schedules[index];
+              final budgetItems = schedule['budgetItems'] as List<Map<String, dynamic>>?;
+              final totalBudget = budgetItems != null ? calculateTotalBudget(budgetItems) : 0;
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
@@ -390,14 +415,15 @@ class _SchedulePageState extends State<SchedulePage> {
                             ],
 
                             // Amount
-                            if (schedule['amount'] != null && schedule['amount']!.isNotEmpty) ...[
-                            Text(
-                              schedule['amount']!,
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 24,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w700,
+                            // Total Budget
+                            if (totalBudget > 0) ...[
+                              Text(
+                                '${formatCurrency(totalBudget)} 원',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 18,
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
@@ -434,13 +460,14 @@ class _SchedulePageState extends State<SchedulePage> {
                             ),
                             onPressed: () {
                               Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => BudgetPage()),
-                              );
+                                  context,
+                                  MaterialPageRoute(
+                                  builder: (context) => IndividualBudgetPage(schedule: schedule),
+                              ));
                             },
                           ),
                           const Text(
-                            '예산',
+                            '예산 관리',
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                         ],

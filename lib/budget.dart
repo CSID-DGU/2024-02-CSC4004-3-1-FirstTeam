@@ -1,68 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-final NumberFormat formatter = NumberFormat('#,##0', 'ko_KR');
-class BudgetPage extends StatefulWidget {
-  @override
-  _BudgetPageState createState() => _BudgetPageState();
-}
+class IndividualBudgetPage extends StatelessWidget {
+  final Map<String, dynamic> schedule;
 
-class _BudgetPageState extends State<BudgetPage> {
-  // 예산 항목 데이터
-  final List<Map<String, dynamic>> budgetItems = [
-    {'name': '딸기', 'amount': 10000},
-    {'name': '수박', 'amount': 10000},
-    {'name': '복숭아', 'amount': 10000},
-    {'name': '포도', 'amount': 10000},
-    {'name': '사과', 'amount': 10000},
-  ];
-
-  void main() {
-    runApp(MaterialApp(
-      home: BudgetPage(),
-    ));
-  }
-  // 새 비용 추가 함수
-  void addBudgetItem(String name, int amount) {
-    setState(() {
-      budgetItems.add({'name': name, 'amount': amount});
-    });
-  }
-
-  // 총 금액 계산 함수
-  int getTotalAmount() {
-    return budgetItems.fold(
-      0,
-          (sum, item) => sum + (item['amount'] as int? ?? 0),
-    );
-
-  }
+  IndividualBudgetPage({required this.schedule});
 
   @override
   Widget build(BuildContext context) {
+    final budgetItems = schedule['budgetItems'] as List<Map<String, dynamic>>;
     final NumberFormat formatter = NumberFormat('#,###');
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          '예산 관리',
-          style: TextStyle(
-            color: Color(0xFF0F1828),
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
+        title: Text('${schedule['title']} 예산 관리',
+        style: TextStyle(
+        color: Color(0xFF0F1828),
+        fontSize: 18,
+        fontWeight: FontWeight.w600,),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: null,
-        automaticallyImplyLeading: false,
-        actions: [
+          leading: null,
+          automaticallyImplyLeading: false,
+          actions: [
           IconButton(
-            icon: const Icon(Icons.close, color: Color(0xFF0F1828)), // Add new schedule icon
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
-        ],
+          icon: const Icon(Icons.close, color: Color(0xFF0F1828)),
+          onPressed: () {
+          Navigator.pop(context);
+          },
+        ),
+      ],
       ),
       body: Column(
         children: [
@@ -84,7 +52,7 @@ class _BudgetPageState extends State<BudgetPage> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    '${formatter.format(getTotalAmount())}원',
+                    '${formatter.format(budgetItems.fold<int>(0, (sum, item) => sum + (item['amount'] as int)))}원',
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -121,14 +89,29 @@ class _BudgetPageState extends State<BudgetPage> {
                       children: [
                         Text(
                           item['name'],
-                          style: const TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 18),
                         ),
                         Text(
                           '${formatter.format(item['amount'])}원',
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
+                        ),
+                        const SizedBox(width: 8),
+                        // 삭제 아이콘
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.black),
+                          onPressed: () {
+                            budgetItems.removeAt(index);
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => IndividualBudgetPage(schedule: schedule),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -150,9 +133,9 @@ class _BudgetPageState extends State<BudgetPage> {
 
                     return AlertDialog(
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20), // 모서리를 둥글게
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      title: Text(
+                      title: const Text(
                         '새로운 비용 추가',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
@@ -187,8 +170,14 @@ class _BudgetPageState extends State<BudgetPage> {
                         ElevatedButton(
                           onPressed: () {
                             if (newName.isNotEmpty && newAmount > 0) {
-                              addBudgetItem(newName, newAmount);
+                              budgetItems.add({'name': newName, 'amount': newAmount});
                               Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => IndividualBudgetPage(schedule: schedule),
+                                ),
+                              );
                             }
                           },
                           child: const Text('추가'),
@@ -223,4 +212,3 @@ class _BudgetPageState extends State<BudgetPage> {
     );
   }
 }
-

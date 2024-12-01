@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 import 'schedule.dart';
-import 'package:intl/intl.dart';
+import 'budget_state.dart';
+import 'package:provider/provider.dart';
+
 final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
 
 void main() {
-  runApp(MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => BudgetState(),
+      child: MaterialApp(
+        home: MainScreen(),
+      ),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
