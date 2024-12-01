@@ -127,7 +127,7 @@ class _LoginPageState extends State<LoginPage> {
               OutlinedButton(
                 key: const Key('signup_button'),
                 onPressed: () {
-                  Navigator.pushNamed(context, '/signup');
+                  Navigator.pushReplacementNamed(context, '/signup');
                 },
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 48),
