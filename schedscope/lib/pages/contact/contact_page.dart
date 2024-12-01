@@ -194,7 +194,7 @@ class _ContactPageState extends State<ContactPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          '친구 목록',
+          '연락처',
           style: TextStyle(
             color: Colors.black,
             fontSize: 22,
