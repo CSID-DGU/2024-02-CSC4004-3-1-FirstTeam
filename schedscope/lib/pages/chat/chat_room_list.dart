@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chat_room.dart'; // ChatRoomScreen 임포트
 import 'create_room_dialog.dart'; // 방 생성 다이얼로그 임포트
+import 'package:schedscope/main.dart';
 
 class ChatRoomList extends StatefulWidget {
   const ChatRoomList({super.key});
@@ -12,7 +13,7 @@ class ChatRoomList extends StatefulWidget {
   _ChatRoomListState createState() => _ChatRoomListState();
 }
 
-class _ChatRoomListState extends State<ChatRoomList> {
+class _ChatRoomListState extends State<ChatRoomList> with RouteAware {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Map<String, dynamic>> chatRooms = [];
@@ -23,6 +24,25 @@ class _ChatRoomListState extends State<ChatRoomList> {
   void initState() {
     super.initState();
     _fetchUser();
+    _fetchChatRooms();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(
+        this, ModalRoute.of(context)! as PageRoute<dynamic>);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // 현재 라우트로 돌아올 때 호출
     _fetchChatRooms();
   }
 
