@@ -14,47 +14,54 @@ class _ContactPageState extends State<ContactPage> {
   ];
 
   void _addNewContact() {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
       builder: (BuildContext context) {
-        String name = '';
-        String number = '';
-        return SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 16.0,
-              right: 16.0,
-              top: 16.0,
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
+        String friendCode = '';
+        return AlertDialog(
+          title: const Center(child: Text('친구 코드 입력')),
+          content: const SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
-                  decoration: const InputDecoration(labelText: '이름'),
-                  onChanged: (value) => name = value,
+                  decoration: InputDecoration(
+                    hintText: '친구 코드를 입력하세요',
+                    hintStyle:
+                        TextStyle(color: Colors.grey), // hintText 색상 연하게 설정
+                  ),
+                  textAlign: TextAlign.center, // 텍스트 필드 내용 가운데 정렬
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  decoration: const InputDecoration(labelText: '전화번호'),
-                  onChanged: (value) => number = value,
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
+              ],
+            ),
+          ),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
                   onPressed: () {
-                    if (name.isNotEmpty && number.isNotEmpty) {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('취소'),
+                ),
+                const SizedBox(width: 8), // 버튼 사이의 간격
+                TextButton(
+                  onPressed: () {
+                    if (friendCode.isNotEmpty) {
                       setState(() {
-                        contacts.add({'name': name, 'number': number});
+                        // 친구 코드를 통해 친구를 추가하는 로직을 여기에 추가
+                        // 예시로 임시 데이터를 추가합니다.
+                        contacts.add({'name': '친구 이름', 'number': friendCode});
                       });
-                      Navigator.pop(context);
+                      Navigator.of(context).pop();
                     }
                   },
                   child: const Text('추가'),
                 ),
               ],
             ),
-          ),
+          ],
         );
       },
     );
@@ -104,10 +111,10 @@ class _ContactPageState extends State<ContactPage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              subtitle: Text(
-                contact['number']!,
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
-              ),
+              // subtitle: Text(
+              //   contact['number']!,
+              //   style: const TextStyle(fontSize: 14, color: Colors.grey),
+              // ),
               onTap: () {
                 // 연락처 클릭 시 동작
               },

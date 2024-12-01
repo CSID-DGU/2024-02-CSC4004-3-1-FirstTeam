@@ -16,12 +16,11 @@ Future<void> showCreateRoomDialog(BuildContext context) async {
           child: Center(
             child: ListBody(
               children: <Widget>[
-                const Center(child: Text('채팅방의 이름을 입력하세요')),
-                const SizedBox(height: 8), // 위젯 사이의 간격
+                // const SizedBox(height: 8), // 위젯 사이의 간격
                 TextField(
                   controller: roomNameController,
                   decoration: const InputDecoration(
-                    hintText: '채팅방 이름',
+                    hintText: '채팅방의 이름을 입력하세요',
                     hintStyle:
                         TextStyle(color: Colors.grey), // hintText 색상 연하게 설정
                   ),

@@ -107,61 +107,76 @@ class _ChatRoomListState extends State<ChatRoomList> with RouteAware {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('새 채팅 참여하기'),
+          title: const Center(child: Text('새 채팅 참여하기')),
           content: TextField(
             controller: roomIdController,
-            decoration: const InputDecoration(hintText: 'Room ID를 입력하세요'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                final String roomId = roomIdController.text;
-                final DocumentReference roomRef = FirebaseFirestore.instance
-                    .collection('ChatRoom')
-                    .doc(roomId);
-                final DocumentReference userRef = FirebaseFirestore.instance
-                    .collection('RoomMember')
-                    .doc(userId);
-
-                final DocumentSnapshot roomSnapshot = await roomRef.get();
-                final DocumentSnapshot userSnapshot = await userRef.get();
-
-                if (roomSnapshot.exists) {
-                  final userData =
-                      userSnapshot.data() as Map<String, dynamic>?; // 데이터 캐스팅
-                  final userRoomIds =
-                      List<String>.from(userData?['room_id_list'] ?? []);
-                  if (userRoomIds.contains(roomId)) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('이미 참여한 채팅방입니다.')),
-                    );
-                  } else {
-                    await roomRef.update({
-                      'participants': FieldValue.increment(1),
-                      'room_member_id': FieldValue.arrayUnion([userId]),
-                    });
-
-                    await userRef.update({
-                      'room_id_list': FieldValue.arrayUnion([roomId]),
-                    });
-
-                    Navigator.of(context).pop();
-                    _fetchChatRooms(); // 채팅방 목록 다시 조회
-                  }
-                } else {
-                  // 방이 존재하지 않는 경우
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('해당 Room ID가 존재하지 않습니다.')),
-                  );
-                }
-              },
-              child: const Text('참여하기'),
+            decoration: const InputDecoration(
+              hintText: 'Room ID를 입력하세요',
+              hintStyle: TextStyle(color: Colors.grey), // hintText 색상 연하게 설정
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('취소'),
+            textAlign: TextAlign.center, // 텍스트 필드 내용 가운데 정렬
+          ),
+          actions: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('취소'),
+                ),
+                const SizedBox(width: 8), // 버튼 사이의 간격
+                TextButton(
+                  onPressed: () async {
+                    final String roomId = roomIdController.text;
+                    if (roomId.isNotEmpty) {
+                      final DocumentReference roomRef = FirebaseFirestore
+                          .instance
+                          .collection('ChatRoom')
+                          .doc(roomId);
+                      final DocumentReference userRef = FirebaseFirestore
+                          .instance
+                          .collection('RoomMember')
+                          .doc(userId);
+
+                      final DocumentSnapshot roomSnapshot = await roomRef.get();
+                      final DocumentSnapshot userSnapshot = await userRef.get();
+
+                      if (roomSnapshot.exists) {
+                        final userData = userSnapshot.data()
+                            as Map<String, dynamic>?; // 데이터 캐스팅
+                        final userRoomIds =
+                            List<String>.from(userData?['room_id_list'] ?? []);
+                        if (userRoomIds.contains(roomId)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('이미 참여한 채팅방입니다.')),
+                          );
+                        } else {
+                          await roomRef.update({
+                            'participants': FieldValue.increment(1),
+                            'room_member_id': FieldValue.arrayUnion([userId]),
+                          });
+
+                          await userRef.update({
+                            'room_id_list': FieldValue.arrayUnion([roomId]),
+                          });
+
+                          Navigator.of(context).pop();
+                          _fetchChatRooms(); // 채팅방 목록 다시 조회
+                        }
+                      } else {
+                        // 방이 존재하지 않는 경우
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('해당 Room ID가 존재하지 않습니다.')),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('참여하기'),
+                ),
+              ],
             ),
           ],
         );
