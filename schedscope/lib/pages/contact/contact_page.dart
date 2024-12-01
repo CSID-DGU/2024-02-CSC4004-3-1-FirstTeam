@@ -150,6 +150,7 @@ class _ContactPageState extends State<ContactPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                const SizedBox(height: 16),
                 CircleAvatar(
                   radius: 50,
                   backgroundImage: NetworkImage(contact['profile_image'] ?? ''),
