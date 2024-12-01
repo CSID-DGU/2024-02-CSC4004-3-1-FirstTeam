@@ -1,23 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'budget_state.dart';
 import 'package:intl/intl.dart';
 
 class IndividualBudgetPage extends StatelessWidget {
-  final Map<String, dynamic> schedule;
+  final String scheduleTitle;
 
-  IndividualBudgetPage({required this.schedule});
+  IndividualBudgetPage({required this.scheduleTitle});
+
 
   @override
   Widget build(BuildContext context) {
-    final budgetItems = schedule['budgetItems'] as List<Map<String, dynamic>>;
+    final budgetState = Provider.of<BudgetState>(context);
+    final budgetItems = budgetState.schedules[scheduleTitle] ?? [];
     final NumberFormat formatter = NumberFormat('#,###');
+
+    // 합계 계산
+    int totalAmount = budgetItems.fold<int>(0, (sum, item) => sum + (item['amount'] as int));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${schedule['title']} 예산 관리',
-        style: TextStyle(
-        color: Color(0xFF0F1828),
-        fontSize: 18,
-        fontWeight: FontWeight.w600,),
+        title: Text(
+          '$scheduleTitle 예산 관리',
+          style: TextStyle(
+            color: Color(0xFF0F1828),
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -52,7 +61,7 @@ class IndividualBudgetPage extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    '${formatter.format(budgetItems.fold<int>(0, (sum, item) => sum + (item['amount'] as int)))}원',
+                    '${formatter.format(budgetState.getTotalAmount(scheduleTitle))}원',
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -103,14 +112,7 @@ class IndividualBudgetPage extends StatelessWidget {
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.black),
                           onPressed: () {
-                            budgetItems.removeAt(index);
-                            Navigator.pop(context);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => IndividualBudgetPage(schedule: schedule),
-                              ),
-                            );
+                            budgetState.removeBudgetItem(scheduleTitle, index);
                           },
                         ),
                       ],
@@ -170,14 +172,8 @@ class IndividualBudgetPage extends StatelessWidget {
                         ElevatedButton(
                           onPressed: () {
                             if (newName.isNotEmpty && newAmount > 0) {
-                              budgetItems.add({'name': newName, 'amount': newAmount});
+                              budgetState.addBudgetItem(scheduleTitle, {'name': newName, 'amount': newAmount});
                               Navigator.pop(context);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => IndividualBudgetPage(schedule: schedule),
-                                ),
-                              );
                             }
                           },
                           child: const Text('추가'),

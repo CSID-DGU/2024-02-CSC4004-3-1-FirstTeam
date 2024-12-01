@@ -29,9 +29,10 @@ class _SchedulePageState extends State<SchedulePage> {
     // 초기화 단계에서 Provider 데이터 가져오기
     Future.delayed(Duration.zero, () {
       final budgetState = Provider.of<BudgetState>(context, listen: false);
-      setState(() {
-        totalAmount = budgetState.getTotalAmount();
-      });
+      // 초기 일정 데이터를 BudgetState에 추가
+      for (final schedule in schedules) {
+        budgetState.schedules[schedule['title']] = List<Map<String, dynamic>>.from(schedule['budgetItems']);
+      }
     });
   }
   // 일정 데이터 샘플
@@ -277,6 +278,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
   @override
   Widget build(BuildContext context) {
+    final NumberFormat formatter = NumberFormat('#,###');
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -309,8 +311,7 @@ class _SchedulePageState extends State<SchedulePage> {
             itemCount: schedules.length,
             itemBuilder: (context, index) {
               final schedule = schedules[index];
-              final budgetItems = schedule['budgetItems'] as List<Map<String, dynamic>>?;
-              final totalBudget = budgetItems != null ? calculateTotalBudget(budgetItems) : 0;
+              final totalBudget = Provider.of<BudgetState>(context).getTotalAmount(schedule['title']);
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
@@ -416,9 +417,9 @@ class _SchedulePageState extends State<SchedulePage> {
 
                             // Amount
                             // Total Budget
-                            if (totalBudget > 0) ...[
+                            ...[
                               Text(
-                                '${formatCurrency(totalBudget)} 원',
+                                '${formatter.format(totalBudget)} 원',
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 18,
@@ -462,8 +463,9 @@ class _SchedulePageState extends State<SchedulePage> {
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                  builder: (context) => IndividualBudgetPage(schedule: schedule),
-                              ));
+                                  builder: (context) => IndividualBudgetPage(scheduleTitle: schedule['title']),
+                              ),
+                              );
                             },
                           ),
                           const Text(
