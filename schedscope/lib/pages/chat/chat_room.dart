@@ -255,15 +255,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 color: Colors.black,
               ),
               const SizedBox(height: 16.0),
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.group, size: 20),
-                  SizedBox(width: 8), // 아이콘과 텍스트 사이의 간격
-                  Text(
+                  const Icon(Icons.group, size: 20),
+                  const SizedBox(width: 8), // 아이콘과 텍스트 사이의 간격
+                  const Text(
                     '참여자',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 4), // 텍스트와 참여자 수 사이의 간격
+                  Text(
+                    '(${widget.chatRoom['participants']}명)',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
                     ),
                   ),
                 ],
