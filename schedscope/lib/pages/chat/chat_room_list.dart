@@ -172,9 +172,31 @@ class _ChatRoomListState extends State<ChatRoomList> with RouteAware {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text('채팅방 목록'),
-      // ),
+      appBar: AppBar(
+        title: const Text(
+          '채팅',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        // 그림자
+        //elevation: 0.0,
+        // 밑줄
+        // bottom: PreferredSize(
+        //   preferredSize: const Size.fromHeight(4.0),
+        //   child: Container(
+        //     margin: const EdgeInsets.symmetric(horizontal: 16.0),
+        //     height: 2.0,
+        //     decoration: BoxDecoration(
+        //       color: Colors.black12,
+        //       borderRadius: BorderRadius.circular(2.0),
+        //     ),
+        //   ),
+        // ),
+      ),
       body: Container(
         color: const Color(0xffffffff), // 배경색 변경
         padding: const EdgeInsets.all(10),

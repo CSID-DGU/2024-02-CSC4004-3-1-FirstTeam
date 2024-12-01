@@ -92,8 +92,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('프로필 수정'),
-      ),
+          // title: const Text('프로필 수정',
+          //     style: TextStyle(
+          //       color: Colors.black,
+          //       fontSize: 22,
+          //       fontWeight: FontWeight.w600,
+          //     )),
+          ),
       body: _userData == null
           ? const Center(child: CircularProgressIndicator())
           : Center(

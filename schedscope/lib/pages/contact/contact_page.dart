@@ -67,16 +67,17 @@ class _ContactPageState extends State<ContactPage> {
         title: const Text(
           '연락처',
           style: TextStyle(
-            color: Color(0xFF0F1828),
-            fontSize: 18,
+            color: Colors.black,
+            fontSize: 22,
             fontWeight: FontWeight.w600,
           ),
         ),
         backgroundColor: Colors.white,
-        elevation: 0,
+        //elevation: 0.0,
+
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_add, color: Color(0xFF0F1828)),
+            icon: const Icon(Icons.person_add, color: Colors.black),
             onPressed: _addNewContact,
           ),
         ],

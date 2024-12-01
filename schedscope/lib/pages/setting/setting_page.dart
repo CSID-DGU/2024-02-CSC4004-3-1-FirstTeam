@@ -59,6 +59,18 @@ class _SettingPageState extends State<SettingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          '설정',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: Colors.white10,
+        //elevation: 0.0,
+      ),
       body: _userData == null
           ? const Center(child: CircularProgressIndicator())
           : Center(
