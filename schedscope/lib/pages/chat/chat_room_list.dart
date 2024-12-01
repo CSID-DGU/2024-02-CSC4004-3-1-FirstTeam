@@ -36,6 +36,7 @@ class _ChatRoomListState extends State<ChatRoomList> {
     _user = _auth.currentUser;
   }
 
+  // 채팅방 목록 조회
   Future<void> _fetchChatRooms() async {
     final user = _user;
     if (user != null) {
@@ -45,6 +46,7 @@ class _ChatRoomListState extends State<ChatRoomList> {
       if (roomMemberSnapshot.exists) {
         final roomIds =
             List<String>.from(roomMemberSnapshot.data()?['room_id_list'] ?? []);
+        List<Map<String, dynamic>> newChatRooms = [];
         for (final roomId in roomIds) {
           final chatRoomSnapshot =
               await _firestore.collection('ChatRoom').doc(roomId).get();
@@ -52,22 +54,24 @@ class _ChatRoomListState extends State<ChatRoomList> {
           if (chatRoomSnapshot.exists) {
             final chatRoomData = chatRoomSnapshot.data();
             if (chatRoomData != null) {
-              setState(() {
-                chatRooms.add({
-                  'id': roomId,
-                  'name': chatRoomData['room_name'],
-                  'participants': chatRoomData['participants'],
-                  'created_at':
-                      (chatRoomData['created_at'] as Timestamp).toDate(),
-                });
+              newChatRooms.add({
+                'id': roomId,
+                'name': chatRoomData['room_name'],
+                'participants': chatRoomData['participants'],
+                'created_at':
+                    (chatRoomData['created_at'] as Timestamp).toDate(),
               });
             }
           }
         }
+        setState(() {
+          chatRooms = newChatRooms;
+        });
       }
     }
   }
 
+  // 방 만들기
   Future<void> _joinChatRoom(BuildContext context) async {
     final TextEditingController roomIdController = TextEditingController();
     final String? userId = _user?.uid; // 자신의 user_id를 여기에 설정
@@ -100,18 +104,30 @@ class _ChatRoomListState extends State<ChatRoomList> {
                     .doc(userId);
 
                 final DocumentSnapshot roomSnapshot = await roomRef.get();
+                final DocumentSnapshot userSnapshot = await userRef.get();
 
                 if (roomSnapshot.exists) {
-                  await roomRef.update({
-                    'participants': FieldValue.increment(1),
-                    'room_member_id': FieldValue.arrayUnion([userId]),
-                  });
+                  final userData =
+                      userSnapshot.data() as Map<String, dynamic>?; // 데이터 캐스팅
+                  final userRoomIds =
+                      List<String>.from(userData?['room_id_list'] ?? []);
+                  if (userRoomIds.contains(roomId)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('이미 참여한 채팅방입니다.')),
+                    );
+                  } else {
+                    await roomRef.update({
+                      'participants': FieldValue.increment(1),
+                      'room_member_id': FieldValue.arrayUnion([userId]),
+                    });
 
-                  await userRef.update({
-                    'room_id_list': FieldValue.arrayUnion([roomId]),
-                  });
+                    await userRef.update({
+                      'room_id_list': FieldValue.arrayUnion([roomId]),
+                    });
 
-                  Navigator.of(context).pop();
+                    Navigator.of(context).pop();
+                    _fetchChatRooms(); // 채팅방 목록 다시 조회
+                  }
                 } else {
                   // 방이 존재하지 않는 경우
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -209,8 +225,9 @@ class _ChatRoomListState extends State<ChatRoomList> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.lightBlue,
                     ),
-                    onPressed: () {
-                      showCreateRoomDialog(context); // 방 만들기 다이얼로그 호출
+                    onPressed: () async {
+                      await showCreateRoomDialog(context); // 방 만들기 다이얼로그 호출
+                      _fetchChatRooms(); // 채팅방 목록 다시 조회
                     },
                     child: const Text('채팅방 생성하기'),
                   ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
+import 'chat_room_list.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final Map<String, dynamic> chatRoom;
@@ -18,6 +19,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   bool _notificationsEnabled = true;
+  User? _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _user = _auth.currentUser;
+  }
 
   // 메시지 전송 함수
   void _sendMessage() async {
@@ -97,6 +105,64 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
+  // 방 나가기 함수
+  Future<void> _leaveChatRoom() async {
+    final String? userId = _user?.uid;
+    final String roomId = widget.chatRoom['id'];
+
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('사용자 정보를 가져올 수 없습니다. 다시 로그인 해주세요.')),
+      );
+      return;
+    }
+
+    final DocumentReference roomRef =
+        _firestore.collection('ChatRoom').doc(roomId);
+    final DocumentReference userRef =
+        _firestore.collection('RoomMember').doc(userId);
+    final CollectionReference messageRef =
+        _firestore.collection('Message').doc(roomId).collection('messages');
+
+    await _firestore.runTransaction((transaction) async {
+      final roomSnapshot = await transaction.get(roomRef);
+      final userSnapshot = await transaction.get(userRef);
+      // final msgSnapshot = await transaction.get(msgRef);
+
+      if (roomSnapshot.exists && userSnapshot.exists) {
+        final int participants = roomSnapshot['participants'] - 1;
+
+        if (participants == 0) {
+          // 방과 메시지 삭제
+          final batch = _firestore.batch();
+          batch.delete(roomRef);
+
+          final messagesSnapshot = await messageRef.get();
+          for (final doc in messagesSnapshot.docs) {
+            batch.delete(doc.reference);
+          }
+
+          await batch.commit();
+        } else {
+          transaction.update(roomRef, {
+            'participants': participants,
+            'room_member_id': FieldValue.arrayRemove([userId]),
+          });
+        }
+
+        transaction.update(userRef, {
+          'room_id_list': FieldValue.arrayRemove([roomId]),
+        });
+      }
+    });
+
+    Navigator.of(context).pop(); // 사이드바 닫기
+    Navigator.of(context).pop(); // 이전 화면으로 돌아가기
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('방 나가기가 완료되었습니다.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -171,9 +237,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   // 방 나가기 버튼
                   IconButton(
                     icon: const Icon(Icons.exit_to_app),
-                    onPressed: () {
-                      // 방 나가기 동작
-                    },
+                    onPressed: _leaveChatRoom,
                   ),
                 ],
               ),
@@ -214,10 +278,22 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     if (!snapshot.hasData) {
                       return const Center(child: CircularProgressIndicator());
                     }
+
+                    if (!snapshot.data!.exists) {
+                      // 데이터가 없거나 문서가 존재하지 않는 경우
+                      return const Center(child: Text('채팅방이 존재하지 않습니다.'));
+                    }
+
                     final roomData =
-                        snapshot.data!.data() as Map<String, dynamic>;
+                        snapshot.data!.data() as Map<String, dynamic>?;
+
+                    if (roomData == null) {
+                      return const Center(child: Text('채팅방 데이터를 불러올 수 없습니다.'));
+                    }
+
                     final participants =
                         List<String>.from(roomData['room_member_id'] ?? []);
+
                     return ListView.builder(
                       itemCount: participants.length,
                       itemBuilder: (context, index) {
@@ -266,7 +342,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
+
                   final messages = snapshot.data!.docs;
+
                   return ListView.builder(
                     reverse: true,
                     itemCount: messages.length,
