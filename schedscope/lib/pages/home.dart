@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:schedscope/pages/chat/chat_room_list.dart';
 import 'setting/setting_page.dart';
+import 'contact/contact_page.dart';
 
 class ChatAppMainPage extends StatefulWidget {
   const ChatAppMainPage({super.key});
@@ -13,8 +14,7 @@ class _ChatAppMainPageState extends State<ChatAppMainPage> {
   int _selectedIndex = 0;
 
   static final List<Widget> _widgetOptions = <Widget>[
-    const Text('친구 목록',
-        style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
+    const ContactPage(), // contact_page.dart와 연결
     const Center(child: ChatRoomList()), // chat_room_list.dart와 연결
     const Center(child: SettingPage()), // setting_page.dart와 연결
   ];
@@ -39,7 +39,7 @@ class _ChatAppMainPageState extends State<ChatAppMainPage> {
         title: Text(_titles[_selectedIndex]),
         titleTextStyle: const TextStyle(
           fontSize: 24,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
           color: Colors.black,
         ),
         bottom: PreferredSize(
