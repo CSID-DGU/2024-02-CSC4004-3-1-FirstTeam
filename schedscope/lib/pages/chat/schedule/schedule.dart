@@ -46,17 +46,29 @@ class _SchedulePageState extends State<SchedulePage> {
       final data = doc.data() as Map<String, dynamic>;
       final Timestamp startTimestamp = data['start'];
       final Timestamp endTimestamp = data['end'];
-      final DateTime startDate = startTimestamp.toDate();
-      final DateTime endDate = endTimestamp.toDate();
-      final String formattedStartDate =
-          DateFormat('yyyy.MM.dd').format(startDate);
-      final String formattedEndDate = DateFormat('yyyy.MM.dd').format(endDate);
+      final DateTime startDate =
+          startTimestamp.toDate().toLocal(); // 로컬 시간대로 변환
+      final DateTime endDate = endTimestamp.toDate().toLocal(); // 로컬 시간대로 변환
+
+      String formattedDate;
+      if (startDate.year == endDate.year &&
+          startDate.month == endDate.month &&
+          startDate.day == endDate.day) {
+        // 같은 날인 경우 시간만 표시
+        formattedDate =
+            '${DateFormat('yy.MM.dd(EEE)').format(startDate)} ${DateFormat('HH:mm').format(startDate)} - ${DateFormat('HH:mm').format(endDate)}';
+      } else {
+        // 다른 날인 경우 전체 날짜와 시간 표시
+        formattedDate =
+            '${DateFormat('yy.MM.dd(EEE) HH:mm').format(startDate)} 부터 ${DateFormat('yy.MM.dd(EEE) HH:mm').format(endDate)} 까지';
+      }
 
       return {
         'id': doc.id,
         'title': data['name'],
-        'date': '$formattedStartDate - $formattedEndDate',
-        'time': null,
+        'start': startDate,
+        'end': endDate,
+        'date': formattedDate,
         'location': data['location'],
         'details': data['detail'],
       };
@@ -83,9 +95,9 @@ class _SchedulePageState extends State<SchedulePage> {
 
       final List<String> dateRange = date.split('~');
       final DateTime startDate =
-          DateFormat('yyyy.MM.dd(EEE)').parse(dateRange[0].trim());
+          DateFormat('yy.MM.dd').parse(dateRange[0].trim());
       final DateTime endDate =
-          DateFormat('yyyy.MM.dd(EEE)').parse(dateRange[1].trim());
+          DateFormat('yy.MM.dd').parse(dateRange[1].trim());
 
       // 시간 범위 분리
       final List<String> timeRange = time.split('~');
@@ -206,9 +218,9 @@ class _SchedulePageState extends State<SchedulePage> {
                         if (endDate != null) {
                           // 날짜 형식 지정
                           String formattedStartDate =
-                              DateFormat('yyyy.MM.dd(EEE)').format(startDate);
+                              DateFormat('yy.MM.dd').format(startDate);
                           String formattedEndDate =
-                              DateFormat('yyyy.MM.dd(EEE)').format(endDate);
+                              DateFormat('yy.MM.dd').format(endDate);
 
                           setState(() {
                             dateController.text =
@@ -338,6 +350,7 @@ class _SchedulePageState extends State<SchedulePage> {
           child: ScheduleList(
             schedules: schedules,
             roomId: widget.roomId,
+            onDelete: _fetchSchedules, // 삭제 후 새로고침
           ),
         ),
       ),

@@ -6,9 +6,14 @@ import 'budget.dart';
 class ScheduleList extends StatelessWidget {
   final List<Map<String, dynamic>> schedules;
   final String roomId;
+  final VoidCallback onDelete;
 
-  const ScheduleList(
-      {super.key, required this.schedules, required this.roomId});
+  const ScheduleList({
+    super.key,
+    required this.schedules,
+    required this.roomId,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +93,7 @@ class ScheduleList extends StatelessWidget {
                                     schedule['date']!,
                                     style: const TextStyle(
                                       color: Color(0xFF3498DB),
-                                      fontSize: 16,
+                                      fontSize: 14,
                                       fontFamily: 'Inter',
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -131,23 +136,55 @@ class ScheduleList extends StatelessWidget {
                               // ),
                               // const SizedBox(width: 8), // 아이콘과 텍스트 사이의 간격 조정
                               IconButton(
-                                icon: const Icon(
-                                  Icons.delete,
-                                  color: Colors.black,
-                                  size: 25,
-                                ),
-                                onPressed: () async {
-                                  final scheduleId = schedule['id'];
-                                  await FirebaseFirestore.instance
-                                      .collection('Message')
-                                      .doc(roomId)
-                                      .collection('schedule')
-                                      .doc(scheduleId)
-                                      .delete();
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: Colors.black,
+                                    size: 25,
+                                  ),
+                                  onPressed: () async {
+                                    final scheduleId = schedule['id'];
 
-                                  schedules.removeAt(index);
-                                },
-                              ),
+                                    // 확인 대화상자 표시
+                                    final bool? confirmDelete =
+                                        await showDialog<bool>(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          title: const Text('삭제 확인'),
+                                          content:
+                                              const Text('정말로 이 일정을 삭제하시겠습니까?'),
+                                          actions: <Widget>[
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.of(context)
+                                                    .pop(false); // 취소
+                                              },
+                                              child: const Text('취소'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.of(context)
+                                                    .pop(true); // 확인
+                                              },
+                                              child: const Text('삭제'),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+
+                                    // 사용자가 확인 버튼을 눌렀을 때만 삭제
+                                    if (confirmDelete == true) {
+                                      await FirebaseFirestore.instance
+                                          .collection('Message')
+                                          .doc(roomId)
+                                          .collection('schedule')
+                                          .doc(scheduleId)
+                                          .delete();
+
+                                      onDelete(); // 목록 새로고침
+                                    }
+                                  }),
                               const SizedBox(width: 4), // 아이콘과 텍스트 사이의 간격 조정
                               // const Text(
                               //   '삭제',
