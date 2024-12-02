@@ -58,6 +58,30 @@ class BudgetState extends ChangeNotifier {
     }
   }
 
+// 비용 업데이트
+  Future<void> updateBudgetItem(String roomId, String scheduleId, int index,
+      String updatedName, int updatedAmount) async {
+    final budgetItems = schedules[scheduleId];
+    if (budgetItems != null && index < budgetItems.length) {
+      final budgetId = budgetItems[index]['id'];
+      await FirebaseFirestore.instance
+          .collection('Message')
+          .doc(roomId)
+          .collection('schedule')
+          .doc(scheduleId)
+          .collection('budget')
+          .doc(budgetId)
+          .update({
+        'name': updatedName,
+        'amount': updatedAmount,
+      });
+
+      budgetItems[index]['name'] = updatedName;
+      budgetItems[index]['amount'] = updatedAmount;
+      notifyListeners(); // 상태 업데이트
+    }
+  }
+
   // 예산 항목 가져오기
   Future<void> fetchBudgetItems(String roomId, String scheduleId) async {
     final CollectionReference budgetCollection = FirebaseFirestore.instance
@@ -69,14 +93,14 @@ class BudgetState extends ChangeNotifier {
 
     final QuerySnapshot snapshot = await budgetCollection.get();
 
-    if (snapshot.docs.isEmpty) {
-      // budget 컬렉션이 없으면 새로 생성
-      await budgetCollection.add({
-        'amount': 0,
-        'category': '',
-        'name': 'Initial Budget Item',
-      });
-    }
+    // if (snapshot.docs.isEmpty) {
+    //   // budget 컬렉션이 없으면 새로 생성
+    //   await budgetCollection.add({
+    //     'amount': 0,
+    //     'category': '',
+    //     'name': 'Initial Budget Item',
+    //   });
+    // }
 
     final List<Map<String, dynamic>> fetchedBudgetItems =
         snapshot.docs.map((doc) {

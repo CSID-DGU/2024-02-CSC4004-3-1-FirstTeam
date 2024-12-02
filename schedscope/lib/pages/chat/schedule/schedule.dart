@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart'; // DateFormat을 사용하기 위한 필요한 패키지
 import 'package:omni_datetime_picker/omni_datetime_picker.dart';
-import 'budget_state.dart';
-import 'budget.dart';
-import 'package:provider/provider.dart';
 import 'schedule_list.dart'; // ScheduleList 위젯 임포트
 
 class SchedulePage extends StatefulWidget {
