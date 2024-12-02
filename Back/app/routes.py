@@ -1,193 +1,142 @@
 from flask import request, jsonify, Blueprint
 from Back.app.db import *
-
+import requests  # AI API 호출을 위한 라이브러리 (예시)
+import traceback  # 오류 추적용
+from datetime import datetime
 
 api = Blueprint('api', __name__)  # 'api'는 블루프린트 이름
 
-@api.route('/users', methods=['POST'])
-def addUser():
-    data = request.json  # 클라이언트에서 전달된 JSON 데이터
-    new_user_ref = users_ref.push(data)  # Firebase에 데이터 추가
-    return jsonify({"id": new_user_ref.key, "message": "User created successfully!"}), 201
+
+def requestAI(ai_payload, roomId):
+    # AI API 호출
+    ai_api_url = "https://example-ai-api.com/query"  # AI API URL (실제 엔드포인트로 변경)
+    ai_api_headers = {"Content-Type": "application/json"}
+    ai_response = requests.post(ai_api_url, json=ai_payload, headers=ai_api_headers)
+
+    if ai_response.status_code != 200:
+        return jsonify({"status": "failure", "message": "AI API call failed", "details": ai_response.text}), 500
+
+    ai_response_data = ai_response.json()
+
+    # AI 응답 데이터를 Firestore에 저장
+    upload_firestore(ai_response_data, roomId)
+
+    # 성공 여부 응답
+    return jsonify({"status": "success", "message": "AI response processed and stored successfully"}), 200
 
 
-@api.route('/users/<userId>', methods=['GET'])
-def getUser(userId):
+def upload_firestore(data, roomId):
     try:
-        # Realtime Database에서 userId에 해당하는 데이터 가져오기
-        user_ref = db.reference(f'users/{userId}')
-        user_data = user_ref.get()
+        # Firestore의 Schedule 및 Buget 컬렉션 참조
+        schedule_collection = db.collection("Message").document(roomId).collection("schedule")
+        buget_collection = db.collection("Message").document(roomId).collection("buget")
 
-        if user_data:
-            # 문서 데이터를 JSON 형태로 반환
-            return jsonify({"success": True, "data": user_data}), 200
-        else:
-            return jsonify({"success": False, "message": "User not found"}), 404
+        # JSON 데이터 처리
+        for item in data.get("schedules", []):  # schedules 키 안의 데이터를 반복
+            schedule_id = item.get("id")  # AI 모듈에서 받은 데이터의 'id'
+
+            # ID가 없으면 새로운 스케줄 생성
+            if not schedule_id:
+                new_doc_ref = schedule_collection.document()  # 새 문서 ID 생성
+                new_doc_ref.set({
+                    "detail": item.get("detail", ""),
+                    "end": item.get("end"),
+                    "id": new_doc_ref.id,  # Firestore에서 자동 생성한 ID
+                    "location": item.get("location", ""),
+                    "name": item.get("name", ""),
+                    "start": item.get("start"),
+                })
+            else:
+                # ID가 존재하면 해당 스케줄 업데이트
+                existing_doc_ref = schedule_collection.document(schedule_id)
+                if existing_doc_ref.get().exists:
+                    # 문서가 이미 존재하면 업데이트
+                    existing_doc_ref.update({
+                        "detail": item.get("detail", ""),
+                        "end": item.get("end"),
+                        "location": item.get("location", ""),
+                        "name": item.get("name", ""),
+                        "start": item.get("start"),
+                    })
+                else:
+                    # 문서가 없으면 새로 생성
+                    existing_doc_ref.set({
+                        "detail": item.get("detail", ""),
+                        "end": item.get("end"),
+                        "id": schedule_id,
+                        "location": item.get("location", ""),
+                        "name": item.get("name", ""),
+                        "start": item.get("start"),
+                    })
+
+        # Buget 데이터는 무조건 삽입
+        for item in data.get("bugets", []):  # bugets 키 안의 데이터를 반복
+            buget_collection.add({
+                "amount": item.get("amount", 0),
+                "category": item.get("category", ""),
+                "description": item.get("description", ""),
+                "timestamp": item.get("timestamp")
+            })
+
+        # 성공 응답
+        return jsonify({"status": "success", "message": "Schedules and Bugets processed successfully"}), 200
 
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+        # 에러 응답
+        return jsonify({"status": "failure", "message": str(e)}), 500
 
-@api.route('/users/<userId>', methods=['DELETE'])
-def deleteUser(userId):
+@api.route('/ai/<roomID>', methods=['GET'])
+def getAI(roomID):
     try:
-        # Realtime Database에서 userId에 해당하는 데이터 가져오기
-        user_ref = db.reference(f'users/{userId}')
-        user_data = user_ref.get()
+        # Firestore에서 room_id 문서와 messages 하위 컬렉션 접근
+        message_ref = db.collection("Message").document(roomID)
+        room_doc = message_ref.get()
 
-        if user_data:
-            # userId 문서를 삭제
-            user_ref.delete()
-            return jsonify({"id": userId, "message": "User deleted successfully!"}), 200
-        else:
-            return jsonify({"success": False, "message": "User not found"}), 404
+        # room_id 문서가 존재하는지 확인
+        if not room_doc.exists:
+            return {"status": "failure", "message": f"Room {roomID} not found."}
+
+        # last_timestamp 가져오기
+        last_timestamp = room_doc.to_dict().get("last_timestamp")
+
+        # messages 하위 컬렉션에서 timestamp 기준으로 새로운 메시지만 가져오기
+        message_subcollection_ref = message_ref.collection("messages")
+        messages_query = message_subcollection_ref.order_by("timestamp")
+
+        if last_timestamp:
+            messages_query = messages_query.where("timestamp", ">", last_timestamp)
+
+        # Firestore에서 쿼리 실행
+        messages = messages_query.get()
+
+        # 메시지 리스트로 변환
+        message_list = [msg.to_dict() for msg in messages]
+
+        # 새로운 메시지 존재 여부 확인
+        if not message_list:
+            return {"status": "success", "message": "No new messages since last_timestamp."}
+
+        # 파싱된 메시지 (JSON 형태로 유지)
+        parsed_messages = [
+            {
+                "user_id": message["user_id"],
+                "content": message["content"]
+            }
+            for message in message_list
+        ]
+        # 새로운 메시지 중 가장 최근의 timestamp 가져오기
+        new_last_timestamp = message_list[-1]["timestamp"]
+        print(new_last_timestamp)
+        # room_id 문서에 last_timestamp 업데이트
+        message_ref.update({"last_timestamp": new_last_timestamp})
+
+        print(f"{parsed_messages}")
+
+        requestAI(parsed_messages, roomID)
+
+
 
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
-
-@api.route('/friends/<userId>', methods=['POST'])
-def addFriend(userId):
-    try:
-        # 클라이언트에서 전달받은 friendId 데이터
-        data = request.json  # friendId
-        friendId = data.get("friend_id")
-
-        if not friendId:
-            return jsonify({"success": False, "message": "friendId is required"}), 400
-
-        # Firebase의 friendLists 컬렉션에 userId와 friendId를 포함한 데이터 추가
-        friendLists_ref.push({
-            "user_id": userId,
-            "friend_id": friendId
-        })
-
-        return jsonify({
-            "message": "Friend added successfully!"
-        }), 201
-
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
-
-
-@api.route('/friends/<userId>', methods=['DELETE'])
-def deleteFriend(userId):
-    try:
-        # 클라이언트에서 전달받은 friendId 데이터
-        data = request.json  # friendId
-        friendId = data.get("friend_id")
-
-        # friendLists 경로 참조
-        friendLists_ref = db.reference('friendLists')
-
-        # userId와 friendId를 조건으로 데이터 검색
-        query = friendLists_ref.order_by_child('user_id').equal_to(userId).get()
-
-        # 검색 결과에서 friendId 매칭 확인
-        for flistId, value in query.items():
-            if value.get('friendId') == friendId:
-                value.delete()
-            return jsonify({"id": userId, "message": "friend ", friendId: "was deleted successfully!"}), 200
-
-        return jsonify({
-            "message": "Friend added successfully!"
-        }), 201
-
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
-
-#방생성
-@api.route('/rooms/<userId>', methods=['POST'])
-def createRoom(userId):
-    try:
-        data = request.json
-        roomName = data.get("room_name")
-        createdAt = data.get("created_at")
-
-        newRoom = chatRooms_ref.push({
-            "room_name" :  roomName,
-            "created_at" : createdAt
-        })
-
-        #roommember에 등록
-        roomMember_ref.push({
-            "user_id": userId,
-            "room_id": newRoom.get("room_id")
-        })
-
-        return jsonify({
-            "message": "ChatRoom created successfully!"
-        }), 201
-
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
-#초대코드 생성
-@api.route('/rooms/<roomId>/invitation', methods=['POST'])
-def createRoomCode():
-    try:
-        data = request.json
-        created_by = data.get("created_by"),
-        expires_at = data.get("expires_at")
-
-        #invitationCode make
-        invitationCode ="1234"
-        return jsonify({
-            "message" : f"your invitation code is {invitationCode} "
-        }), 201
-
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
-
-#초대코드로 방 입장
-@api.route('/rooms/join', methods=['POST'])
-def joinRoom(userId):
-    try:
-        data = request.json
-        userId = data.get("user_id")
-        invitationCode = data.get("invitation_code")
-
-        #invitationCode 검색
-        room_data = inviteCodes_ref.get(invitationCode)
-
-        # 초대 코드가 존재하지 않는 경우
-        if not room_data:
-            return jsonify({"error": "Invalid invitation code"}), 404
-
-        # roommember에 등록
-        roomMember_ref.push({
-            "user_id": userId,
-            "room_id": room_data.get("room_id")
-        })
-
-        return jsonify({
-            "message": "ChatRoom joined successfully!"
-        }), 201
-
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
-
-#방 나가기
-@api.route('/rooms/<roomId>/users/<userId>', methods=['DELETE'])
-def leaveRoom(roomId, userId):
-    try:
-        # 방이 존재하지 않는 경우
-        if roomId not in chatRooms_ref:
-            return jsonify({"error": "Room not found"}), 404
-
-        # 사용자가 방에 속하지 않은 경우
-        if userId not in chatRooms_ref[roomId]["users"]:
-            return jsonify({"error": f"User {userId} is not in room {roomId}"}), 404
-
-        # 사용자를 방에서 제거
-        chatRooms_ref[roomId]["users"].remove(userId)
-
-        return jsonify({"message": f"User {userId} successfully left room {roomId}"}), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
+        # 예외 처리 및 실패 응답
+        return jsonify({"status": "failure", "message": "An error occurred", "error": str(e), "trace": traceback.format_exc()}), 500
 
