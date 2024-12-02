@@ -15,8 +15,8 @@ class ScheduleList extends StatelessWidget {
     final NumberFormat formatter = NumberFormat('#,###');
 
     return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(), // 내부 스크롤 비활성화
+      // shrinkWrap: true,
+      // physics: const NeverScrollableScrollPhysics(), // 내부 스크롤 비활성화
       itemCount: schedules.length,
       itemBuilder: (context, index) {
         final schedule = schedules[index];

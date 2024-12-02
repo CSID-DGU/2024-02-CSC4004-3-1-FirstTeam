@@ -272,22 +272,32 @@ class _SchedulePageState extends State<SchedulePage> {
             ),
           ),
           actions: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center, // 버튼을 가운데 정렬
-              children: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context); // 다이얼로그 닫기
-                  },
-                  child: const Text('취소'),
-                ),
-                const SizedBox(width: 10), // 버튼 간 간격 조정
-                ElevatedButton(
-                  onPressed: addSchedule, // 일정 추가
-                  child: const Text('추가'),
-                ),
-              ],
-            ),
+            SizedBox(
+              width: double.infinity, // 다이얼로그의 가로 크기 채우기
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly, // 균등하게 배치
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        side: const BorderSide(color: Colors.blue),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context); // 다이얼로그 닫기
+                      },
+                      child: const Text('취소'),
+                    ),
+                  ),
+                  const SizedBox(width: 10), // 버튼 간 간격 조정
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: addSchedule, // 일정 추가
+                      child: const Text('추가'),
+                    ),
+                  ),
+                ],
+              ),
+            )
           ],
         );
       },
@@ -322,10 +332,14 @@ class _SchedulePageState extends State<SchedulePage> {
       body: Container(
         color: Colors.white, // 배경색 변경
         margin: const EdgeInsets.symmetric(horizontal: 16.0), // 좌우 여백 추가
-        child: ScheduleList(
-          schedules: schedules,
-          roomId: widget.roomId,
-        ), // ScheduleList 위젯 사용
+        child: Padding(
+          padding:
+              const EdgeInsets.only(bottom: 140.0), // bottomSheet 높이만큼 여백 추가
+          child: ScheduleList(
+            schedules: schedules,
+            roomId: widget.roomId,
+          ),
+        ),
       ),
       bottomSheet: Container(
         padding: const EdgeInsets.all(15),
