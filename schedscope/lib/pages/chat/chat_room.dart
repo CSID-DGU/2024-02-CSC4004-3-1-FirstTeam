@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'chat_room_list.dart';
+import 'package:schedscope/pages/chat/schedule/schedule.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final Map<String, dynamic> chatRoom;
@@ -194,23 +195,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
           ],
         ),
-
-        // 액션 아이콘
-        // actions: [
-        //   IconButton(
-        //     icon: const Icon(Icons.edit_calendar),
-        //     onPressed: () {
-        //       // 일정 관리 화면으로 이동
-        //     },
-        //   ),
-        //   IconButton(
-        //     icon: const Icon(Icons.more_vert),
-        //     onPressed: () {
-        //       _showSideBar(context); // 사이드바 표시
-        //     },
-        //   ),
-        // ],
       ),
+
       /* 사이드바 */
       endDrawer: Drawer(
         child: Container(
@@ -256,28 +242,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 color: Colors.black,
               ),
               const SizedBox(height: 16.0),
-              Row(
-                children: [
-                  const Icon(Icons.group, size: 20),
-                  const SizedBox(width: 8), // 아이콘과 텍스트 사이의 간격
-                  const Text(
-                    '참여자',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 4), // 텍스트와 참여자 수 사이의 간격
-                  Text(
-                    '(${widget.chatRoom['participants']}명)',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                ],
-              ),
               Expanded(
                 child: StreamBuilder<DocumentSnapshot>(
                   stream: _firestore
@@ -303,34 +267,87 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
                     final participants =
                         List<String>.from(roomData['room_member_id'] ?? []);
+                    final participantCount = participants.length;
 
-                    return ListView.builder(
-                      itemCount: participants.length,
-                      itemBuilder: (context, index) {
-                        final participantId = participants[index];
-                        return FutureBuilder<Map<String, dynamic>>(
-                          future: _getUserInfo(participantId),
-                          builder: (context, userInfoSnapshot) {
-                            if (!userInfoSnapshot.hasData) {
-                              return const ListTile(
-                                title: Text('Loading...'),
-                              );
-                            }
-                            final userInfo = userInfoSnapshot.data!;
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundImage: NetworkImage(
-                                    userInfo['profile_image'] ?? ''),
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.group, size: 20),
+                            const SizedBox(width: 8), // 아이콘과 텍스트 사이의 간격
+                            const Text(
+                              '참여자 ',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
-                              title: Text(userInfo['name'] ?? 'Unknown'),
-                            );
-                          },
-                        );
-                      },
+                            ),
+                            Text(
+                              '($participantCount명)',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          ],
+                        ),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: participants.length,
+                            itemBuilder: (context, index) {
+                              final participantId = participants[index];
+                              return FutureBuilder<Map<String, dynamic>>(
+                                future: _getUserInfo(participantId),
+                                builder: (context, userInfoSnapshot) {
+                                  if (!userInfoSnapshot.hasData) {
+                                    return const ListTile(
+                                      title: Text('Loading...'),
+                                    );
+                                  }
+                                  final userInfo = userInfoSnapshot.data!;
+                                  return ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundImage: NetworkImage(
+                                          userInfo['profile_image'] ?? ''),
+                                    ),
+                                    title: Text(userInfo['name'] ?? 'Unknown'),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 16.0),
+                        Center(
+                          child: SizedBox(
+                            width: double.infinity, // 버튼이 좌우 여백을 꽉 채우도록 설정
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                // 일정 관리 화면으로 이동
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => SchedulePage(
+                                        roomId: widget.chatRoom['id']),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.edit_calendar), // 아이콘 추가
+                              label: const Text(
+                                '일정 관리',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600, // 폰트를 bold로 설정
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
-              ),
+              )
             ],
           ),
         ),
