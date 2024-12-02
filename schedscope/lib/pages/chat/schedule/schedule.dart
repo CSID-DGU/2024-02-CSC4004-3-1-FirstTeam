@@ -1,89 +1,103 @@
 import 'package:flutter/material.dart';
-import 'budget_state.dart';
-import 'budget.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart'; // DateFormat을 사용하기 위한 필요한 패키지
 import 'package:omni_datetime_picker/omni_datetime_picker.dart';
+import 'budget_state.dart';
+import 'budget.dart';
 import 'package:provider/provider.dart';
 
 class SchedulePage extends StatefulWidget {
-  const SchedulePage({super.key});
+  final String roomId;
+
+  const SchedulePage({super.key, required this.roomId});
 
   @override
   _SchedulePageState createState() => _SchedulePageState();
 }
 
-int calculateTotalBudget(List<Map<String, dynamic>> budgetItems) {
-  return budgetItems.fold(0, (sum, item) => sum + (item['amount'] as int));
-}
-
-// 금액 형식화 함수
-String formatCurrency(int amount) {
-  final NumberFormat formatter = NumberFormat('#,###');
-  return formatter.format(amount);
-}
-
 class _SchedulePageState extends State<SchedulePage> {
-  int? totalAmount;
+  List<Map<String, dynamic>> schedules = [];
 
-  @override
-  void initState() {
-    super.initState();
-    // 초기화 단계에서 Provider 데이터 가져오기
-    Future.delayed(Duration.zero, () {
-      final budgetState = Provider.of<BudgetState>(context, listen: false);
-      // 초기 일정 데이터를 BudgetState에 추가
-      for (final schedule in schedules) {
-        budgetState.schedules[schedule['title']] =
-            List<Map<String, dynamic>>.from(schedule['budgetItems']);
-      }
-    });
-  }
-
-  // 일정 데이터 샘플
-  final List<Map<String, dynamic>> schedules = [
-    {
-      'title': '제주도 여행',
-      'date': '2024.12.11(wed) - 2024.12.15(sun)',
-      'time': null,
-      'location': '제주도',
-      'details': '애월',
-      'budgetItems': [
-        {'name': '항공권', 'amount': 145500},
-        {'name': '숙소', 'amount': 334000},
-      ],
-    },
-    {
-      'title': '종강 총회',
-      'date': '2024.12.15(fri)',
-      'time': '19:00 - 21:00',
-      'location': '충무로',
-      'details': '20명 참가 예정',
-      'budgetItems': [
-        {'name': '회식비', 'amount': 20000},
-      ],
-    },
-  ];
-
-// 텍스트 필드 컨트롤러
+  // 텍스트 필드 컨트롤러
   final TextEditingController titleController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
   final TextEditingController timeController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
   final TextEditingController detailsController = TextEditingController();
 
-  // 일정 추가 함수
-  void addSchedule() {
+  @override
+  void initState() {
+    super.initState();
+    _fetchSchedules();
+  }
+
+  Future<void> _fetchSchedules() async {
+    final QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('Message')
+        .doc(widget.roomId)
+        .collection('schedule')
+        .get();
+
+    final List<Map<String, dynamic>> fetchedSchedules =
+        snapshot.docs.map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      final Timestamp startTimestamp = data['start'];
+      final Timestamp endTimestamp = data['end'];
+      final DateTime startDate = startTimestamp.toDate();
+      final DateTime endDate = endTimestamp.toDate();
+      final String formattedStartDate =
+          DateFormat('yyyy.MM.dd(EEE)').format(startDate);
+      final String formattedEndDate =
+          DateFormat('yyyy.MM.dd(EEE)').format(endDate);
+
+      return {
+        'id': doc.id,
+        'title': data['name'],
+        'date': '$formattedStartDate - $formattedEndDate',
+        'time': null,
+        'location': data['location'],
+        'details': data['detail'],
+      };
+    }).toList();
+
+    setState(() {
+      schedules = fetchedSchedules;
+    });
+  }
+
+  Future<void> addSchedule() async {
     final title = titleController.text;
     final date = dateController.text;
     final time = timeController.text;
     final location = locationController.text;
     final details = detailsController.text;
-    final budgetState = Provider.of<BudgetState>(context, listen: false);
 
-    // 제목만 입력되면 일정 추가
     if (title.isNotEmpty) {
+      final DocumentReference scheduleRef = FirebaseFirestore.instance
+          .collection('Message')
+          .doc(widget.roomId)
+          .collection('schedule')
+          .doc();
+
+      final List<String> dateRange = date.split('~');
+      final DateTime startDate =
+          DateFormat('yyyy.MM.dd(EEE)').parse(dateRange[0].trim());
+      final DateTime endDate =
+          DateFormat('yyyy.MM.dd(EEE)').parse(dateRange[1].trim());
+
+      await scheduleRef.set({
+        'name': title,
+        'start': Timestamp.fromDate(startDate),
+        'end': Timestamp.fromDate(endDate),
+        'location': location,
+        'detail': details,
+        'id': scheduleRef.id,
+      });
+
       setState(() {
         schedules.add({
+          'id': scheduleRef.id,
           'title': title,
           'date': date,
           'time': time,
@@ -92,39 +106,14 @@ class _SchedulePageState extends State<SchedulePage> {
         });
       });
 
-      // 폼 초기화
+      // 입력 필드 초기화
       titleController.clear();
-      timeController.clear();
       dateController.clear();
+      timeController.clear();
       locationController.clear();
       detailsController.clear();
 
-      Navigator.pop(context); // 다이얼로그 닫기
-    } else {
-      // 제목이 비어 있으면 경고 메시지
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text(
-              '필수 항목 미기재',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
-            ),
-            content: const Text(
-              '제목을 작성하세요.',
-              style: TextStyle(fontWeight: FontWeight.w300, fontSize: 16),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('확인'),
-              ),
-            ],
-          );
-        },
-      );
+      Navigator.of(context).pop();
     }
   }
 
@@ -134,139 +123,139 @@ class _SchedulePageState extends State<SchedulePage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20), // 모서리를 둥글게
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20), // 모서리를 둥글게
+          ),
+          title: const Text(
+            '새로운 일정 추가',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
             ),
-            title: const Text(
-              '새로운 일정 추가',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
-              ),
-            ),
-            content: SingleChildScrollView(
-              child: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.8, // 다이얼로그 너비 조정
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(labelText: '제목'),
-                    ),
-                    TextField(
-                      controller: dateController,
-                      decoration: const InputDecoration(labelText: '날짜'),
-                      readOnly: true,
-                      onTap: () async {
-                        // 시작 날짜 선택
-                        DateTime? startDate = await showOmniDateTimePicker(
+          ),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.8, // 다이얼로그 너비 조정
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(labelText: '제목'),
+                  ),
+                  TextField(
+                    controller: dateController,
+                    decoration: const InputDecoration(labelText: '날짜'),
+                    readOnly: true,
+                    onTap: () async {
+                      // 시작 날짜 선택
+                      DateTime? startDate = await showOmniDateTimePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                        is24HourMode: true,
+                        type: OmniDateTimePickerType.date,
+                      );
+
+                      if (startDate != null) {
+                        // 종료 날짜 선택
+                        DateTime? endDate = await showOmniDateTimePicker(
                           context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime(2000),
+                          initialDate: startDate.add(const Duration(days: 1)),
+                          firstDate: startDate,
                           lastDate: DateTime(2100),
                           is24HourMode: true,
                           type: OmniDateTimePickerType.date,
                         );
 
-                        if (startDate != null) {
-                          // 종료 날짜 선택
-                          DateTime? endDate = await showOmniDateTimePicker(
-                            context: context,
-                            initialDate: startDate.add(const Duration(days: 1)),
-                            firstDate: startDate,
-                            lastDate: DateTime(2100),
-                            is24HourMode: true,
-                            type: OmniDateTimePickerType.date,
-                          );
+                        if (endDate != null) {
+                          // 날짜 형식 지정
+                          String formattedStartDate =
+                              DateFormat('yyyy.MM.dd(EEE)').format(startDate);
+                          String formattedEndDate =
+                              DateFormat('yyyy.MM.dd(EEE)').format(endDate);
 
-                          if (endDate != null) {
-                            // 날짜 형식 지정
-                            String formattedStartDate =
-                                DateFormat('yyyy.MM.dd(EEE)').format(startDate);
-                            String formattedEndDate =
-                                DateFormat('yyyy.MM.dd(EEE)').format(endDate);
-
-                            setState(() {
-                              dateController.text =
-                                  "$formattedStartDate~$formattedEndDate";
-                            });
-                          }
+                          setState(() {
+                            dateController.text =
+                                "$formattedStartDate~$formattedEndDate";
+                          });
                         }
-                      },
-                    ),
-                    TextField(
-                      controller: timeController,
-                      decoration: const InputDecoration(labelText: '시간'),
-                      readOnly: true,
-                      onTap: () async {
-                        // 시작 시간 선택
-                        DateTime? startTime = await showOmniDateTimePicker(
+                      }
+                    },
+                  ),
+                  TextField(
+                    controller: timeController,
+                    decoration: const InputDecoration(labelText: '시간'),
+                    readOnly: true,
+                    onTap: () async {
+                      // 시작 시간 선택
+                      DateTime? startTime = await showOmniDateTimePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                        is24HourMode: true,
+                        type: OmniDateTimePickerType.time,
+                      );
+
+                      if (startTime != null) {
+                        // 종료 시간 선택
+                        DateTime? endTime = await showOmniDateTimePicker(
                           context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2100),
+                          initialDate: startTime.add(const Duration(hours: 1)),
+                          firstDate: startTime,
+                          lastDate: startTime.add(const Duration(hours: 12)),
                           is24HourMode: true,
                           type: OmniDateTimePickerType.time,
                         );
 
-                        if (startTime != null) {
-                          // 종료 시간 선택
-                          DateTime? endTime = await showOmniDateTimePicker(
-                            context: context,
-                            initialDate:
-                                startTime.add(const Duration(hours: 1)),
-                            firstDate: startTime,
-                            lastDate: startTime.add(const Duration(hours: 12)),
-                            is24HourMode: true,
-                            type: OmniDateTimePickerType.time,
-                          );
+                        if (endTime != null) {
+                          // 시간 형식 지정
+                          String formattedStartTime =
+                              DateFormat('HH:mm').format(startTime);
+                          String formattedEndTime =
+                              DateFormat('HH:mm').format(endTime);
 
-                          if (endTime != null) {
-                            // 시간 형식 지정
-                            String formattedStartTime =
-                                DateFormat('HH:mm').format(startTime);
-                            String formattedEndTime =
-                                DateFormat('HH:mm').format(endTime);
-
-                            setState(() {
-                              timeController.text =
-                                  "$formattedStartTime~$formattedEndTime";
-                            });
-                          }
+                          setState(() {
+                            timeController.text =
+                                "$formattedStartTime~$formattedEndTime";
+                          });
                         }
-                      },
-                    ),
-                    TextField(
-                      controller: locationController,
-                      decoration: const InputDecoration(labelText: '장소'),
-                    ),
-                    TextField(
-                      controller: detailsController,
-                      decoration: const InputDecoration(labelText: '세부사항'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center, // 버튼을 가운데 정렬
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context); // 다이얼로그 닫기
+                      }
                     },
-                    child: const Text('취소'),
                   ),
-                  const SizedBox(width: 10), // 버튼 간 간격 조정
-                  ElevatedButton(
-                    onPressed: addSchedule, // 일정 추가
-                    child: const Text('추가'),
+                  TextField(
+                    controller: locationController,
+                    decoration: const InputDecoration(labelText: '장소'),
+                  ),
+                  TextField(
+                    controller: detailsController,
+                    decoration: const InputDecoration(labelText: '세부사항'),
                   ),
                 ],
               ),
-            ]);
+            ),
+          ),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center, // 버튼을 가운데 정렬
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // 다이얼로그 닫기
+                  },
+                  child: const Text('취소'),
+                ),
+                const SizedBox(width: 10), // 버튼 간 간격 조정
+                ElevatedButton(
+                  onPressed: addSchedule, // 일정 추가
+                  child: const Text('추가'),
+                ),
+              ],
+            ),
+          ],
+        );
       },
     );
   }
@@ -306,8 +295,6 @@ class _SchedulePageState extends State<SchedulePage> {
             itemCount: schedules.length,
             itemBuilder: (context, index) {
               final schedule = schedules[index];
-              final totalBudget = Provider.of<BudgetState>(context)
-                  .getTotalAmount(schedule['title']);
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
@@ -348,88 +335,74 @@ class _SchedulePageState extends State<SchedulePage> {
                       // Center: Schedule Details
                       Expanded(
                         child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start, // 왼쪽 정렬
-                            children: [
-                              // Title
+                          crossAxisAlignment: CrossAxisAlignment.start, // 왼쪽 정렬
+                          children: [
+                            // Title
+                            Text(
+                              schedule['title']!,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+
+                            // Date
+                            if (schedule['date'] != null &&
+                                schedule['date']!.isNotEmpty) ...[
                               Text(
-                                schedule['title']!,
+                                schedule['date']!,
                                 style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 15,
+                                  color: Color(0xFF3498DB),
+                                  fontSize: 16,
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                               const SizedBox(height: 5),
+                            ],
 
-                              // Date
-                              if (schedule['date'] != null &&
-                                  schedule['date']!.isNotEmpty) ...[
-                                Text(
-                                  schedule['date']!,
-                                  style: const TextStyle(
-                                    color: Color(0xFF3498DB),
-                                    fontSize: 16,
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                            // Time
+                            if (schedule['time'] != null &&
+                                schedule['time']!.isNotEmpty) ...[
+                              Text(
+                                schedule['time']!,
+                                style: const TextStyle(
+                                  color: Color(0xFF3498DB),
+                                  fontSize: 15,
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                const SizedBox(height: 5),
-                              ],
+                              ),
+                              const SizedBox(height: 5),
+                            ],
 
-                              // Time
-                              if (schedule['time'] != null &&
-                                  schedule['time']!.isNotEmpty) ...[
-                                Text(
-                                  schedule['time']!,
-                                  style: const TextStyle(
-                                    color: Color(0xFF3498DB),
-                                    fontSize: 15,
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                              ],
+                            // Location
+                            if (schedule['location'] != null &&
+                                schedule['location']!.isNotEmpty) ...[
+                              Text(
+                                schedule['location']!,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              const SizedBox(height: 5),
+                            ],
 
-                              // Location
-                              if (schedule['location'] != null &&
-                                  schedule['location']!.isNotEmpty) ...[
-                                Text(
-                                  schedule['location']!,
-                                  style: const TextStyle(fontSize: 14),
+                            // Details
+                            if (schedule['details'] != null &&
+                                schedule['details']!.isNotEmpty) ...[
+                              Text(
+                                schedule['details']!,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
                                 ),
-                                const SizedBox(height: 5),
-                              ],
-
-                              // Details
-                              if (schedule['details'] != null &&
-                                  schedule['details']!.isNotEmpty) ...[
-                                Text(
-                                  schedule['details']!,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                              ],
-
-                              // Amount
-                              // Total Budget
-                              ...[
-                                Text(
-                                  '${formatter.format(totalBudget)} 원',
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 18,
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ]),
+                              ),
+                              const SizedBox(height: 10),
+                            ],
+                          ],
+                        ),
                       ),
 
                       // Right: Actions (Delete and Budget)
@@ -442,7 +415,15 @@ class _SchedulePageState extends State<SchedulePage> {
                               color: Colors.black,
                               size: 30,
                             ),
-                            onPressed: () {
+                            onPressed: () async {
+                              final scheduleId = schedule['id'];
+                              await FirebaseFirestore.instance
+                                  .collection('Message')
+                                  .doc(widget.roomId)
+                                  .collection('schedule')
+                                  .doc(scheduleId)
+                                  .delete();
+
                               setState(() {
                                 schedules.removeAt(index);
                               });
@@ -487,16 +468,16 @@ class _SchedulePageState extends State<SchedulePage> {
       ),
       bottomSheet: Container(
         padding: const EdgeInsets.all(15),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: Colors.white,
-          // boxShadow: [
-          //   BoxShadow(
-          //     color: Colors.black.withOpacity(0.1),
-          //     spreadRadius: 5,
-          //     blurRadius: 7,
-          //     offset: const Offset(0, 3), // 그림자 위치 조정
-          //   ),
-          // ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              spreadRadius: 5,
+              blurRadius: 7,
+              offset: const Offset(0, 3), // 그림자 위치 조정
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

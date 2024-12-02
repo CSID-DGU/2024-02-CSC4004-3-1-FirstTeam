@@ -327,7 +327,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => SchedulePage(),
+                                    builder: (context) => SchedulePage(
+                                        roomId: widget.chatRoom['id']),
                                   ),
                                 );
                               },
