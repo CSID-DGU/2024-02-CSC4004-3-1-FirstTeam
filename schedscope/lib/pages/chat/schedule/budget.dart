@@ -4,42 +4,48 @@ import 'budget_state.dart';
 import 'package:intl/intl.dart';
 
 class IndividualBudgetPage extends StatelessWidget {
+  final String scheduleId;
   final String scheduleTitle;
+  final String roomId;
 
-  IndividualBudgetPage({required this.scheduleTitle});
-
+  const IndividualBudgetPage(
+      {super.key,
+      required this.roomId,
+      required this.scheduleId,
+      required this.scheduleTitle});
 
   @override
   Widget build(BuildContext context) {
     final budgetState = Provider.of<BudgetState>(context);
-    final budgetItems = budgetState.schedules[scheduleTitle] ?? [];
+    final budgetItems = budgetState.schedules[scheduleId] ?? [];
     final NumberFormat formatter = NumberFormat('#,###');
 
     // 합계 계산
-    int totalAmount = budgetItems.fold<int>(0, (sum, item) => sum + (item['amount'] as int));
+    int totalAmount =
+        budgetItems.fold<int>(0, (sum, item) => sum + (item['amount'] as int));
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           '$scheduleTitle 예산 관리',
-          style: TextStyle(
+          style: const TextStyle(
             color: Color(0xFF0F1828),
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-          leading: null,
-          automaticallyImplyLeading: false,
-          actions: [
+        leading: null,
+        automaticallyImplyLeading: false,
+        actions: [
           IconButton(
-          icon: const Icon(Icons.close, color: Color(0xFF0F1828)),
-          onPressed: () {
-          Navigator.pop(context);
-          },
-        ),
-      ],
+            icon: const Icon(Icons.close, color: Color(0xFF0F1828)),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -48,8 +54,15 @@ class IndividualBudgetPage extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.blue.shade100,
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.blue,
+                borderRadius: BorderRadius.circular(50),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.5),
+                    blurRadius: 5,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
               child: Row(
@@ -61,11 +74,11 @@ class IndividualBudgetPage extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    '${formatter.format(budgetState.getTotalAmount(scheduleTitle))}원',
+                    '${formatter.format(budgetState.getTotalAmount(scheduleId))}원',
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      color: Colors.white,
                     ),
                   ),
                 ],
@@ -79,20 +92,22 @@ class IndividualBudgetPage extends StatelessWidget {
               itemBuilder: (context, index) {
                 final item = budgetItems[index];
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: const [
                         BoxShadow(
-                          color: Colors.grey.shade300,
+                          color: Colors.grey,
                           blurRadius: 5,
-                          offset: const Offset(0, 3),
+                          offset: Offset(0, 4),
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 16),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -111,8 +126,36 @@ class IndividualBudgetPage extends StatelessWidget {
                         // 삭제 아이콘
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.black),
-                          onPressed: () {
-                            budgetState.removeBudgetItem(scheduleTitle, index);
+                          onPressed: () async {
+                            final bool? confirmDelete = await showDialog<bool>(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text('삭제 확인'),
+                                  content: const Text('정말로 해당 항목을 삭제하시겠습니까?'),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop(false); // 취소
+                                      },
+                                      child: const Text('취소'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop(true); // 확인
+                                      },
+                                      child: const Text('삭제'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+
+                            // 사용자가 확인 버튼을 눌렀을 때만 삭제
+                            if (confirmDelete == true) {
+                              budgetState.removeBudgetItem(
+                                  roomId, scheduleId, index);
+                            }
                           },
                         ),
                       ],
@@ -148,7 +191,8 @@ class IndividualBudgetPage extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           TextField(
-                            decoration: const InputDecoration(labelText: '항목 이름'),
+                            decoration:
+                                const InputDecoration(labelText: '항목 이름'),
                             onChanged: (value) {
                               newName = value;
                             },
@@ -172,7 +216,8 @@ class IndividualBudgetPage extends StatelessWidget {
                         ElevatedButton(
                           onPressed: () {
                             if (newName.isNotEmpty && newAmount > 0) {
-                              budgetState.addBudgetItem(scheduleTitle, {'name': newName, 'amount': newAmount});
+                              budgetState.addBudgetItem(roomId, scheduleId,
+                                  {'name': newName, 'amount': newAmount});
                               Navigator.pop(context);
                             }
                           },

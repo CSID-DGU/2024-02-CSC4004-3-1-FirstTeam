@@ -120,7 +120,9 @@ class ScheduleList extends StatelessWidget {
                                     MaterialPageRoute(
                                       builder: (context) =>
                                           IndividualBudgetPage(
+                                        roomId: roomId,
                                         scheduleTitle: schedule['title'],
+                                        scheduleId: schedule['id'],
                                       ),
                                     ),
                                   );
