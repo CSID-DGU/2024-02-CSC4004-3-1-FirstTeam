@@ -6,6 +6,7 @@ import 'package:omni_datetime_picker/omni_datetime_picker.dart';
 import 'budget_state.dart';
 import 'budget.dart';
 import 'package:provider/provider.dart';
+import 'schedule_list.dart'; // ScheduleList 위젯 임포트
 
 class SchedulePage extends StatefulWidget {
   final String roomId;
@@ -37,6 +38,7 @@ class _SchedulePageState extends State<SchedulePage> {
         .collection('Message')
         .doc(widget.roomId)
         .collection('schedule')
+        .orderBy('start') // 'start' 필드를 기준으로 정렬
         .get();
 
     final List<Map<String, dynamic>> fetchedSchedules =
@@ -47,9 +49,8 @@ class _SchedulePageState extends State<SchedulePage> {
       final DateTime startDate = startTimestamp.toDate();
       final DateTime endDate = endTimestamp.toDate();
       final String formattedStartDate =
-          DateFormat('yyyy.MM.dd(EEE)').format(startDate);
-      final String formattedEndDate =
-          DateFormat('yyyy.MM.dd(EEE)').format(endDate);
+          DateFormat('yyyy.MM.dd').format(startDate);
+      final String formattedEndDate = DateFormat('yyyy.MM.dd').format(endDate);
 
       return {
         'id': doc.id,
@@ -73,7 +74,7 @@ class _SchedulePageState extends State<SchedulePage> {
     final location = locationController.text;
     final details = detailsController.text;
 
-    if (title.isNotEmpty) {
+    if (title.isNotEmpty && date.isNotEmpty && time.isNotEmpty) {
       final DocumentReference scheduleRef = FirebaseFirestore.instance
           .collection('Message')
           .doc(widget.roomId)
@@ -86,10 +87,43 @@ class _SchedulePageState extends State<SchedulePage> {
       final DateTime endDate =
           DateFormat('yyyy.MM.dd(EEE)').parse(dateRange[1].trim());
 
+      // 시간 범위 분리
+      final List<String> timeRange = time.split('~');
+      if (timeRange.length != 2) {
+        throw const FormatException('Invalid time range format');
+      }
+
+      final List<String> startTimeParts = timeRange[0].trim().split(':');
+      final List<String> endTimeParts = timeRange[1].trim().split(':');
+      if (startTimeParts.length != 2 || endTimeParts.length != 2) {
+        throw const FormatException('Invalid time format');
+      }
+
+      final int startHour = int.parse(startTimeParts[0].trim());
+      final int startMinute = int.parse(startTimeParts[1].trim());
+      final int endHour = int.parse(endTimeParts[0].trim());
+      final int endMinute = int.parse(endTimeParts[1].trim());
+
+      final DateTime startDateTime = DateTime(
+        startDate.year,
+        startDate.month,
+        startDate.day,
+        startHour, // 시작 시간
+        startMinute, // 시작 분
+      );
+
+      final DateTime endDateTime = DateTime(
+        endDate.year,
+        endDate.month,
+        endDate.day,
+        endHour, // 종료 시간
+        endMinute, // 종료 분
+      );
+
       await scheduleRef.set({
         'name': title,
-        'start': Timestamp.fromDate(startDate),
-        'end': Timestamp.fromDate(endDate),
+        'start': Timestamp.fromDate(startDateTime),
+        'end': Timestamp.fromDate(endDateTime),
         'location': location,
         'detail': details,
         'id': scheduleRef.id,
@@ -262,14 +296,13 @@ class _SchedulePageState extends State<SchedulePage> {
 
   @override
   Widget build(BuildContext context) {
-    final NumberFormat formatter = NumberFormat('#,###');
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           '일정 관리',
           style: TextStyle(
             color: Color(0xFF0F1828),
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -286,198 +319,26 @@ class _SchedulePageState extends State<SchedulePage> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(15),
-        children: [
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(), // 내부 스크롤 비활성화
-            itemCount: schedules.length,
-            itemBuilder: (context, index) {
-              final schedule = schedules[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(
-                  side: const BorderSide(
-                    width: 1,
-                    color: Color(0xFFDBDBDB),
-                  ),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                elevation: 4,
-                shadowColor: const Color(0x3F000000),
-                child: Padding(
-                  padding: const EdgeInsets.all(15),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Left: Circle Number
-                      Container(
-                        width: 30,
-                        height: 30,
-                        decoration: const ShapeDecoration(
-                          color: Color(0xFF3498DB),
-                          shape: OvalBorder(),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${index + 1}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-
-                      // Center: Schedule Details
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start, // 왼쪽 정렬
-                          children: [
-                            // Title
-                            Text(
-                              schedule['title']!,
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 15,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-
-                            // Date
-                            if (schedule['date'] != null &&
-                                schedule['date']!.isNotEmpty) ...[
-                              Text(
-                                schedule['date']!,
-                                style: const TextStyle(
-                                  color: Color(0xFF3498DB),
-                                  fontSize: 16,
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 5),
-                            ],
-
-                            // Time
-                            if (schedule['time'] != null &&
-                                schedule['time']!.isNotEmpty) ...[
-                              Text(
-                                schedule['time']!,
-                                style: const TextStyle(
-                                  color: Color(0xFF3498DB),
-                                  fontSize: 15,
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 5),
-                            ],
-
-                            // Location
-                            if (schedule['location'] != null &&
-                                schedule['location']!.isNotEmpty) ...[
-                              Text(
-                                schedule['location']!,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              const SizedBox(height: 5),
-                            ],
-
-                            // Details
-                            if (schedule['details'] != null &&
-                                schedule['details']!.isNotEmpty) ...[
-                              Text(
-                                schedule['details']!,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                            ],
-                          ],
-                        ),
-                      ),
-
-                      // Right: Actions (Delete and Budget)
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete,
-                              color: Colors.black,
-                              size: 30,
-                            ),
-                            onPressed: () async {
-                              final scheduleId = schedule['id'];
-                              await FirebaseFirestore.instance
-                                  .collection('Message')
-                                  .doc(widget.roomId)
-                                  .collection('schedule')
-                                  .doc(scheduleId)
-                                  .delete();
-
-                              setState(() {
-                                schedules.removeAt(index);
-                              });
-                            },
-                          ),
-                          const Text(
-                            '삭제',
-                            style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 10),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.monetization_on_rounded,
-                              color: Colors.black,
-                              size: 30,
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => IndividualBudgetPage(
-                                      scheduleTitle: schedule['title']),
-                                ),
-                              );
-                            },
-                          ),
-                          const Text(
-                            '예산 관리',
-                            style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
+      body: Container(
+        color: Colors.white, // 배경색 변경
+        margin: const EdgeInsets.symmetric(horizontal: 16.0), // 좌우 여백 추가
+        child: ScheduleList(
+          schedules: schedules,
+          roomId: widget.roomId,
+        ), // ScheduleList 위젯 사용
       ),
       bottomSheet: Container(
         padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              spreadRadius: 5,
-              blurRadius: 7,
-              offset: const Offset(0, 3), // 그림자 위치 조정
-            ),
-          ],
+          // boxShadow: [
+          //   BoxShadow(
+          //     color: Colors.black.withOpacity(0.1),
+          //     spreadRadius: 5,
+          //     blurRadius: 7,
+          //     offset: const Offset(0, 3), // 그림자 위치 조정
+          //   ),
+          // ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
