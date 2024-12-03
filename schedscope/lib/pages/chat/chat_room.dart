@@ -382,8 +382,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       final isMe =
                           messageData['user_id'] == _auth.currentUser?.uid;
                       final timestamp = messageData['timestamp']?.toDate();
-                      final formattedTime = timestamp != null
-                          ? "${timestamp.toLocal().month.toString().padLeft(2, '0')}/${timestamp.toLocal().day.toString().padLeft(2, '0')} ${timestamp.toLocal().hour.toString().padLeft(2, '0')}:${timestamp.toLocal().minute.toString().padLeft(2, '0')}"
+                      final koreanTime =
+                          timestamp?.add(const Duration(hours: 9));
+                      final formattedTime = koreanTime != null
+                          ? "${koreanTime.month.toString().padLeft(2, '0')}/${koreanTime.day.toString().padLeft(2, '0')} ${koreanTime.hour.toString().padLeft(2, '0')}:${koreanTime.minute.toString().padLeft(2, '0')}"
                           : "Unknown time";
 
                       return FutureBuilder<Map<String, dynamic>>(
