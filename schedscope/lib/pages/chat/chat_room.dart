@@ -381,6 +381,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           message.data() as Map<String, dynamic>;
                       final isMe =
                           messageData['user_id'] == _auth.currentUser?.uid;
+                      final timestamp = messageData['timestamp']?.toDate();
+                      final formattedTime = timestamp != null
+                          ? "${timestamp.toLocal().month.toString().padLeft(2, '0')}/${timestamp.toLocal().day.toString().padLeft(2, '0')} ${timestamp.toLocal().hour.toString().padLeft(2, '0')}:${timestamp.toLocal().minute.toString().padLeft(2, '0')}"
+                          : "Unknown time";
+
                       return FutureBuilder<Map<String, dynamic>>(
                         future: _getUserInfo(messageData['user_id']),
                         builder: (context, userInfoSnapshot) {
@@ -423,6 +428,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                       style: TextStyle(
                                         color:
                                             isMe ? Colors.white : Colors.black,
+                                      ),
+                                    ),
+                                    Text(
+                                      formattedTime,
+                                      style: TextStyle(
+                                        color:
+                                            isMe ? Colors.white : Colors.black,
+                                        fontSize: 10,
                                       ),
                                     ),
                                   ],
