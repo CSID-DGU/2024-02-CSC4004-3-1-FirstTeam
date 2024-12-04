@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart'; // DateFormat을 사용하기 위한 필요한 패키지
 import 'package:omni_datetime_picker/omni_datetime_picker.dart';
 import 'schedule_list.dart'; // ScheduleList 위젯 임포트
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class SchedulePage extends StatefulWidget {
   final String roomId;
@@ -312,6 +314,34 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 
+// POST 요청을 보내는 함수
+  Future<void> sendPostRequest(String roomId) async {
+    const String apiUrl = 'https://example.com/api/your_endpoint'; // 임시 API URL
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String, String>{
+          'roomId': roomId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        // 요청이 성공했을 때의 처리
+        print('Request successful: ${response.body}');
+      } else {
+        // 요청이 실패했을 때의 처리
+        print('Request failed with status: ${response.statusCode}');
+      }
+    } catch (e) {
+      // 예외 처리
+      print('Request error: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -396,6 +426,7 @@ class _SchedulePageState extends State<SchedulePage> {
               child: ElevatedButton(
                 onPressed: () {
                   // Add your AI request logic here
+                  sendPostRequest(widget.roomId);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF3498DB),
