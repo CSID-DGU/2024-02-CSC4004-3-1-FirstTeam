@@ -25,80 +25,67 @@ def requestAI(ai_payload, roomId):
     # 성공 여부 응답
     return jsonify({"status": "success", "message": "AI response processed and stored successfully"}), 200
 
-
 def upload_firestore(data, roomId):
     try:
-        # Firestore의 Schedule 및 Buget 컬렉션 참조
+        # Firestore의 Schedule 및 Budget 컬렉션 참조
         schedule_collection = db.collection("Message").document(roomId).collection("schedule")
-        buget_collection = db.collection("Message").document(roomId).collection("buget")
+        budget_collection = db.collection("Message").document(roomId).collection("budget")
 
-        # JSON 데이터 처리
-        for item in data.get("schedules", []):  # schedules 키 안의 데이터를 반복
-            schedule_id = item.get("id")  # AI 모듈에서 받은 데이터의 'id'
+        # JSON 데이터 처리 - Schedule
+        schedule_data = {
+            "name": data.get("name", ""),
+            "start": data.get("start"),
+            "end": data.get("end"),
+            "location": data.get("location", ""),
+            "detail": data.get("detail", "")
+        }
 
-            # ID가 없으면 새로운 스케줄 생성
-            if not schedule_id:
-                new_doc_ref = schedule_collection.document()  # 새 문서 ID 생성
-                new_doc_ref.set({
-                    "detail": item.get("detail", ""),
-                    "end": item.get("end"),
-                    "id": new_doc_ref.id,  # Firestore에서 자동 생성한 ID
-                    "location": item.get("location", ""),
-                    "name": item.get("name", ""),
-                    "start": item.get("start"),
-                })
-            else:
-                # ID가 존재하면 해당 스케줄 업데이트
-                existing_doc_ref = schedule_collection.document(schedule_id)
-                if existing_doc_ref.get().exists:
-                    # 문서가 이미 존재하면 업데이트
-                    existing_doc_ref.update({
-                        "detail": item.get("detail", ""),
-                        "end": item.get("end"),
-                        "location": item.get("location", ""),
-                        "name": item.get("name", ""),
-                        "start": item.get("start"),
-                    })
-                else:
-                    # 문서가 없으면 새로 생성
-                    existing_doc_ref.set({
-                        "detail": item.get("detail", ""),
-                        "end": item.get("end"),
-                        "id": schedule_id,
-                        "location": item.get("location", ""),
-                        "name": item.get("name", ""),
-                        "start": item.get("start"),
-                    })
+        # ID가 있는 경우 수정, 없으면 새 문서 생성
+        if "id" in data and data["id"]:  # AI 응답에 'id' 필드가 있는 경우
+            existing_schedule_doc_ref = schedule_collection.document(data["id"])
+            if existing_schedule_doc_ref.get().exists:  # 문서가 존재하면 업데이트
+                existing_schedule_doc_ref.update(schedule_data)
+            else:  # 문서가 존재하지 않으면 새로 생성
+                new_schedule_doc_ref = schedule_collection.document(data["id"])
+                schedule_data["id"] = new_schedule_doc_ref.id
+                new_schedule_doc_ref.set(schedule_data)
+        else:  # 'id'가 없으면 새 문서 생성
+            new_schedule_doc_ref = schedule_collection.document()
+            schedule_data["id"] = new_schedule_doc_ref.id
+            new_schedule_doc_ref.set(schedule_data)
 
-        # Buget 데이터는 무조건 삽입
-        for item in data.get("bugets", []):  # bugets 키 안의 데이터를 반복
-            buget_collection.add({
-                "amount": item.get("amount", 0),
-                "category": item.get("category", ""),
-                "description": item.get("description", ""),
-                "timestamp": item.get("timestamp")
+        # JSON 데이터 처리 - Budget
+        for budget_item in data.get("budget", []):
+            budget_collection.add({
+                "name": budget_item.get("name", ""),
+                "category": budget_item.get("category", ""),
+                "amount": budget_item.get("amount", 0),
             })
 
         # 성공 응답
-        return jsonify({"status": "success", "message": "Schedules and Bugets processed successfully"}), 200
+        return jsonify({"status": "success", "message": "Schedule and Budget processed successfully"}), 200
 
     except Exception as e:
         # 에러 응답
         return jsonify({"status": "failure", "message": str(e)}), 500
+
 
 @api.route('/ai/<roomID>', methods=['GET'])
 def getAI(roomID):
     try:
         # Firestore에서 room_id 문서와 messages 하위 컬렉션 접근
         message_ref = db.collection("Message").document(roomID)
+
         room_doc = message_ref.get()
 
-        # room_id 문서가 존재하는지 확인
+       # room_id 문서가 존재하는지 확인
         if not room_doc.exists:
             return {"status": "failure", "message": f"Room {roomID} not found."}
 
         # last_timestamp 가져오기
         last_timestamp = room_doc.to_dict().get("last_timestamp")
+
+
 
         # messages 하위 컬렉션에서 timestamp 기준으로 새로운 메시지만 가져오기
         message_subcollection_ref = message_ref.collection("messages")
@@ -106,6 +93,9 @@ def getAI(roomID):
 
         if last_timestamp:
             messages_query = messages_query.where("timestamp", ">", last_timestamp)
+
+
+
 
         # Firestore에서 쿼리 실행
         messages = messages_query.get()
@@ -133,9 +123,9 @@ def getAI(roomID):
 
         print(f"{parsed_messages}")
 
+      #  return jsonify(parsed_messages)
+
         requestAI(parsed_messages, roomID)
-
-
 
     except Exception as e:
         # 예외 처리 및 실패 응답

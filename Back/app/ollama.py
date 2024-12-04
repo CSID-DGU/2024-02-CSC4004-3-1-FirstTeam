@@ -3,10 +3,6 @@ from Back.app.db import *
 import ollama
 from datetime import datetime
 
-# Firebase 초기화
-cred = Back.app.db.cred
-firebase_admin.initialize_app(cred)
-db = firestore.client()
 
 # Ollama를 사용한 대화 분석
 def analyze_conversation(conversation):
