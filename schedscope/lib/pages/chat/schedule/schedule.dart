@@ -332,14 +332,39 @@ class _SchedulePageState extends State<SchedulePage> {
       if (response.statusCode == 200) {
         // 요청이 성공했을 때의 처리
         print('Request successful: ${response.body}');
+        _showDialog('요청 완료', '요청이 성공적으로 완료되었습니다. \n잠시 기다려주세요.');
       } else {
         // 요청이 실패했을 때의 처리
         print('Request failed with status: ${response.statusCode}');
+        _showDialog('오류', '요청 중 오류가 발생했습니다. \n다시 시도해주세요.');
       }
     } catch (e) {
       // 예외 처리
       print('Request error: $e');
+      _showDialog('오류', '요청 중 오류가 발생했습니다. 다시 시도해주세요.');
     }
+  }
+
+  // 다이얼로그를 띄우는 함수
+  void _showDialog(String title, String content) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true, // 다이얼로그 외부를 터치하여 취소 가능
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(content),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('확인'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
