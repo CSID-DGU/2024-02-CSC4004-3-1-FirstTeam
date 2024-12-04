@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/themed_input.dart';
+import '../widgets/alert_dialog.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -14,19 +17,96 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
-
-  // 비밀번호 표시/숨김 토글
   bool _obscureText = true;
+  bool _isLoading = false;
+
   void _togglePasswordVisibility() {
     setState(() {
       _obscureText = !_obscureText;
     });
   }
 
+  Future<void> _signup() async {
+    if (_passwordController.text != _confirmPasswordController.text) {
+      String message = '비밀번호가 일치하지 않습니다.';
+      _showErrorDialog(message);
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(
+      //     content: const Text('비밀번호가 일치하지 않습니다.'),
+      //     backgroundColor: Theme.of(context).colorScheme.secondary,
+      //   ),
+      // );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      UserCredential userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+
+      try {
+        await FirebaseFirestore.instance
+            .collection('User')
+            .doc(userCredential.user!.uid)
+            .set({
+          'name': _nicknameController.text,
+          'email': _emailController.text,
+          'profile_image':
+              'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
+        });
+        print("Firestore에 데이터 저장 완료"); //log
+      } catch (e) {
+        print("Firestore 저장 오류: $e"); //log
+      }
+      Navigator.pushReplacementNamed(
+          context, '/login'); // 회원가입 성공 시 로그인 페이지로 이동
+    } on FirebaseAuthException catch (e) {
+      String message;
+      if (e.code == 'weak-password') {
+        message = '비밀번호를 6자 이상 입력해주세요.';
+      } else if (e.code == 'email-already-in-use') {
+        message = '이미 사용 중인 이메일입니다.';
+      } else {
+        message = '회원가입에 실패했습니다.\n다시 시도해주세요.';
+      }
+      _showErrorDialog(message);
+    } catch (e) {
+      _showErrorDialog('서버와 통신 중 오류가 발생했습니다.');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return CustomAlertDialog(
+          title: '',
+          content: message,
+          onConfirm: () {
+            Navigator.of(context).pop();
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        title: const Text('회원가입'),
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -80,16 +160,16 @@ class _SignupPageState extends State<SignupPage> {
               const SizedBox(height: 24),
 
               /* 가입하기 버튼 */
-              ElevatedButton(
-                key: const Key('signup_button'),
-                onPressed: () {
-                  // 가입 로직 추가
-                },
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-                child: const Text('가입하기', style: TextStyle(fontSize: 16)),
-              ),
+              _isLoading
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                      key: const Key('signup_button'),
+                      onPressed: _signup,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                      child: const Text('가입하기', style: TextStyle(fontSize: 16)),
+                    ),
             ],
           ),
         ),
