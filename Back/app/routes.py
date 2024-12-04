@@ -1,12 +1,8 @@
-import ollama
-from flask import request, jsonify, Blueprint
-from werkzeug.exceptions import BadRequestKeyError
+from flask import jsonify, Blueprint
 
 from Back.app.db import *
 from Back.app.ollama import *
-import requests  # AI API 호출을 위한 라이브러리 (예시)
 import traceback  # 오류 추적용
-from datetime import datetime
 
 api = Blueprint('api', __name__)  # 'api'는 블루프린트 이름
 
@@ -105,6 +101,9 @@ def getAI(roomID):
             }
             for message in message_list
         ]
+
+        requestAI(parsed_messages, roomID)
+
         # 새로운 메시지 중 가장 최근의 timestamp 가져오기
         new_last_timestamp = message_list[-1]["timestamp"]
 
@@ -117,9 +116,6 @@ def getAI(roomID):
             message_ref.update({"last_timestamp": new_last_timestamp})
         print(f"{parsed_messages}")
 
-      #  return jsonify(parsed_messages)
-
-        requestAI(parsed_messages, roomID)
 
     except Exception as e:
         # 예외 처리 및 실패 응답
