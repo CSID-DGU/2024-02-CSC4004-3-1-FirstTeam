@@ -1,58 +1,62 @@
-import Back.app.db
-from Back.app.db import *
-import ollama
-from datetime import datetime
+#import Back.app.db
+#from Back.app.db import *
+import requests
+import json
 
 # Firebase 초기화
-cred = Back.app.db.cred
-firebase_admin.initialize_app(cred)
-db = firestore.client()
+#cred = Back.app.db.cred
+#firebase_admin.initialize_app(cred)
+#db = firestore.client()
 
 # Ollama를 사용한 대화 분석
 def analyze_conversation(conversation):
-    """
-    Ollama API를 통해 대화 데이터를 분석하여 스케줄 생성에 필요한 정보를 추출합니다.
+    import requests
+    import json
 
-    Parameters:
-        conversation (list): 대화 내역
+    url = "http://localhost:11434/api/generate"
+    headers={"Content-Type": "application/json"}
+    try:
+        prompt_conversation = "\n".join(
+            [f"{entry['user_id']}: {entry['content']}" for entry in conversation]
+        )
+        prompt = f"""
+The following is a conversation about planning a schedule. Extract the following details from the conversation:
+1. Name of the event.
+2. Date of the meeting (format: YYYY-MM-DD).
+3. Time of the meeting (format: HH:MM).
+4. Location of the meeting.
+5. A detailed description of the event.
+6. A list of budgets, where each budget item includes:
+   - Name of the item.
+   - Category of the item.
+   - Amount (in numbers).
 
-    Returns:
-        dict: 분석된 스케줄 데이터
-    """
+Conversation:
+{prompt_conversation}
 
-    ''' localhost에서 실행중인 ollama'''
-    ollama_client = ollama.Client(base_url="http://localhost:11411")
+Respond with a JSON object containing the following fields with the Korean translation:
+- "name": (string) The name of the event.
+- "date": (string) The date of the meeting.
+- "time": (string) The time of the meeting.
+- "location": (string) The location of the meeting.
+- "detail": (string) A detailed description of the event.
+- "budget": (array) An array of JSON objects, where each object contains:
+   - "name" (string): The name of the budget item.
+   - "category" (string): The category of the budget item.
+   - "amount" (number): The amount in currency for the budget item.
+"""
 
-    prompt = f"""
-    The following is a conversation about planning a schedule. Extract the following details from the conversation:
-    - Date and time of the meeting
-    - Location of the meeting
-    - Expected budget for each contents. 
+        response = requests.post(url, json={"model": "llama3.2", "prompt": prompt, "stream": False})
+        response.raise_for_status()  # HTTP 에러 검사
+        result = response.json().get('response', '{}')
+        return json.loads(result)  # 안전하게 JSON 파싱
+    except requests.exceptions.RequestException as e:
+        print(f"Error during API call: {e}")
+        return {}
+    except json.JSONDecodeError:
+        print("Failed to parse JSON response")
+        return {}
 
-    Conversation:
-    {conversation}
-
-    Respond with a JSON containing "name","date", "time", "location","detail", and Array of JSON contianing "name", "category", "amount".
-    """
-    response = ollama_client.complete(prompt=prompt)
-    result = response.get('text', '{}')
-    return eval(result)  # Convert the JSON-like string to a Python dictionary
-
-# Firestore에 스케줄 저장
-def create_schedule(schedule_data):
-    """
-    파이어베이스에 새 스케줄을 저장합니다.
-
-    Parameters:
-        schedule_data (dict): 생성된 스케줄 데이터
-
-    Returns:
-        str: 생성된 문서 ID
-    """
-    schedule_ref = db.collection('schedule').document()
-    schedule_data['id'] = schedule_ref.id  # 문서 ID를 추가
-    schedule_ref.set(schedule_data)
-    return schedule_ref.id
 
 # 대화 예제
 conversation = [
@@ -70,20 +74,8 @@ if __name__ == "__main__":
     try:
         # Ollama를 사용해 대화 분석
         analyzed_data = analyze_conversation(conversation)
+        print("Analyzed data:", analyzed_data)
+    finally:
+        # Firestore에 스케줄 저장
+        print("compelte")
 
-        # 스케줄 데이터 생성
-        schedule_data = {
-            "name": analyzed_data.get("name"),  # 대화 내용에 따라 이름을 지정
-            "detail": analyzed_data.get("detail", "Unknown"),
-            "location": analyzed_data.get("location", "Unknown"),
-            "start": datetime.strptime(f"{analyzed_data['date']} {analyzed_data['time']}", "%Y-%m-%d %H:%M:%S"),
-            "end": None,  # 필요 시 종료 시간을 추가
-            "id": None  # 생성 시 자동으로 추가됨
-        }
-
-        # Firestore에 저장
-        document_id = create_schedule(schedule_data)
-        print(f"New schedule created with ID: {document_id}")
-        print("Schedule Data:", schedule_data)
-    except Exception as e:
-        print(f"Error: {e}")
