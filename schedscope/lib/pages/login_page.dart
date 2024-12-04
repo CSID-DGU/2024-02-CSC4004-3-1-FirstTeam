@@ -36,7 +36,8 @@ class _LoginPageState extends State<LoginPage> {
         email: _emailController.text,
         password: _passwordController.text,
       );
-      Navigator.pushReplacementNamed(context, '/home'); // 로그인 성공 시 홈 화면으로 이동
+      Navigator.pushNamedAndRemoveUntil(context, '/home',
+          (Route<dynamic> route) => false); // 로그인 성공 시 홈 화면으로 이동
     } on FirebaseAuthException catch (e) {
       String message;
       if (e.code == 'user-not-found') {
