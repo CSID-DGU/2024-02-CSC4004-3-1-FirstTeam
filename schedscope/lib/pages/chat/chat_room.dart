@@ -407,6 +407,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                   ? Alignment.centerRight
                                   : Alignment.centerLeft,
                               child: Container(
+                                constraints: BoxConstraints(
+                                  maxWidth:
+                                      MediaQuery.of(context).size.width * 0.77,
+                                ),
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
                                   color: isMe ? Colors.blue : Colors.grey[300],
