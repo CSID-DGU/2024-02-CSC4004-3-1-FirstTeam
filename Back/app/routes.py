@@ -1,3 +1,5 @@
+from types import NoneType
+
 from flask import request, jsonify, Blueprint
 from Back.app.db import *
 from Back.app.ollama import *
@@ -78,23 +80,17 @@ def getAI(roomID):
 
         room_doc = message_ref.get()
 
-       # room_id 문서가 존재하는지 확인
-        if not room_doc.exists:
-            return {"status": "failure", "message": f"Room {roomID} not found."}
-
-        # last_timestamp 가져오기
-        last_timestamp = room_doc.to_dict().get("last_timestamp")
-
-
 
         # messages 하위 컬렉션에서 timestamp 기준으로 새로운 메시지만 가져오기
         message_subcollection_ref = message_ref.collection("messages")
         messages_query = message_subcollection_ref.order_by("timestamp")
 
-        if last_timestamp:
-            messages_query = messages_query.where("timestamp", ">", last_timestamp)
+        if room_doc.exists:
+            # last_timestamp 가져오기
+            last_timestamp = room_doc.to_dict().get("last_timestamp")
 
-
+            if last_timestamp:
+                messages_query = messages_query.where("timestamp", ">", last_timestamp)
 
 
         # Firestore에서 쿼리 실행
@@ -117,10 +113,14 @@ def getAI(roomID):
         ]
         # 새로운 메시지 중 가장 최근의 timestamp 가져오기
         new_last_timestamp = message_list[-1]["timestamp"]
-        print(new_last_timestamp)
-        # room_id 문서에 last_timestamp 업데이트
-        message_ref.update({"last_timestamp": new_last_timestamp})
 
+        # last_timestamp 필드 확인 및 삽입 또는 업데이트
+        if not room_doc.exists:
+            # last_timestamp 필드가 없을 경우 삽입
+            message_ref.set({"last_timestamp": new_last_timestamp}, merge=True)  # merge=True로 기존 데이터 유지
+        else:
+            # last_timestamp 필드가 있을 경우 업데이트
+            message_ref.update({"last_timestamp": new_last_timestamp})
         print(f"{parsed_messages}")
 
       #  return jsonify(parsed_messages)
