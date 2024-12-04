@@ -1,6 +1,7 @@
-from types import NoneType
-
+import ollama
 from flask import request, jsonify, Blueprint
+from werkzeug.exceptions import BadRequestKeyError
+
 from Back.app.db import *
 from Back.app.ollama import *
 import requests  # AI API 호출을 위한 라이브러리 (예시)
@@ -11,15 +12,8 @@ api = Blueprint('api', __name__)  # 'api'는 블루프린트 이름
 
 
 def requestAI(ai_payload, roomId):
-    # AI API 호출
-    ai_api_url = "https://example-ai-api.com/query"  # AI API URL (실제 엔드포인트로 변경)
-    ai_api_headers = {"Content-Type": "application/json"}
-    ai_response = requests.post(ai_api_url, json=ai_payload, headers=ai_api_headers)
-
-    if ai_response.status_code != 200:
-        return jsonify({"status": "failure", "message": "AI API call failed", "details": ai_response.text}), 500
-
-    ai_response_data = ai_response.json()
+    # AI 함수 호출
+    ai_response_data = analyze_conversation(ai_payload)
 
     # AI 응답 데이터를 Firestore에 저장
     upload_firestore(ai_response_data, roomId)
@@ -72,7 +66,7 @@ def upload_firestore(data, roomId):
         return jsonify({"status": "failure", "message": str(e)}), 500
 
 
-@api.route('/ai/<roomID>', methods=['GET'])
+@api.route('/ai/<roomID>', methods=['POST'])
 def getAI(roomID):
     try:
         # Firestore에서 room_id 문서와 messages 하위 컬렉션 접근

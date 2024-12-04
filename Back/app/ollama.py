@@ -20,35 +20,34 @@ def analyze_conversation(conversation):
             [f"{entry['user_id']}: {entry['content']}" for entry in conversation]
         )
         prompt = f"""
-The following is a conversation about planning a schedule. Extract the following details from the conversation:
-1. Name of the event.
-2. Date of the meeting (format: YYYY-MM-DD).
-3. Time of the meeting (format: HH:MM).
-4. Location of the meeting.
-5. A detailed description of the event.
-6. A list of budgets, where each budget item includes:
-   - Name of the item.
-   - Category of the item.
-   - Amount (in numbers).
-
-Conversation:
-{prompt_conversation}
-
-Respond with a JSON object containing the following fields with the Korean translation:
-- "name": (string) The name of the event.
-- "date": (string) The date of the meeting.
-- "time": (string) The time of the meeting.
-- "location": (string) The location of the meeting.
-- "detail": (string) A detailed description of the event.
-- "budget": (array) An array of JSON objects, where each object contains:
-   - "name" (string): The name of the budget item.
-   - "category" (string): The category of the budget item.
-   - "amount" (number): The amount in currency for the budget item.
-"""
+        다음은 일정을 계획하는 대화입니다. 대화에서 다음 세부 정보를 추출하십시오:
+        1. 이벤트 이름.
+        2. 모임 날짜 (형식: YYYY-MM-DD-HH:MM).
+        3. 모임 장소.
+        4. 이벤트에 대한 자세한 설명.
+        5. 예산 항목 목록, 각 예산 항목에는 다음이 포함됩니다:
+           - 항목 이름.
+           - 항목 카테고리.
+           - 금액 (숫자).
+        
+        Conversation:
+        {prompt_conversation}
+        
+        Respond with ONLY! a JSON object in Korean containing the following fields:
+        - "name": (string) 이벤트 이름.
+        - "start": (string) 모임 날짜. (형식: YYYY-MM-DD-HH:MM).
+        - "end": (string) 모임 종료 시간. (형식: YYYY-MM-DD-HH:MM).
+        - "location": (string) 모임 장소.
+        - "detail": (string) 이벤트에 대한 설명
+        - "budget": (array) JSON 객체 배열로 구성된 항목으로, 각 객체는 다음을 포함합니다:
+           - "name" (string): 예산 항목 이름.
+           - "category" (string): 예산 항목 카테고리.
+           - "amount" (number): 예산 금액 (숫자)."""
 
         response = requests.post(url, json={"model": "llama3.2", "prompt": prompt, "stream": False})
         response.raise_for_status()  # HTTP 에러 검사
-        result = response.json().get('response', '{}')
+        print(response.json())
+        result = response.json().get('response', '')
         return json.loads(result)  # 안전하게 JSON 파싱
     except requests.exceptions.RequestException as e:
         print(f"Error during API call: {e}")
@@ -64,8 +63,8 @@ conversation = [
     {"timestamp": "2024-12-04T18:31:00", "user_id": "Bob", "content": "좋아! 금요일 저녁 괜찮아. 장소는 어디로 할까?"},
     {"timestamp": "2024-12-04T18:32:30", "user_id": "Charlie", "content": "나도 금요일 가능! 따뜻한 거 먹고 싶다. 샤브샤브 어때?"},
     {"timestamp": "2024-12-04T18:33:15", "user_id": "Alice", "content": "샤브샤브 좋다! 근처에 괜찮은 곳 있어?"},
-    {"timestamp": "2024-12-04T18:34:20", "user_id": "Bob", "content": "지난번에 갔던 '샤브하우스' 어때? 1인당 25,000원 정도면 될 거야."},
-    {"timestamp": "2024-12-04T18:35:00", "user_id": "Charlie", "content": "그거 좋네! 금요일 7시에 만나자."},
+    {"timestamp": "2024-12-04T18:34:20", "user_id": "Bob", "content": "지난번에 갔던 샤브하우스 어때? 1인당 25000원 정도?"},
+    {"timestamp": "2024-12-04T18:35:00", "user_id": "Charlie", "content": "그거 좋네 금요일 7시에 만나자."},
     {"timestamp": "2024-12-04T18:36:10", "user_id": "Alice", "content": "좋아, 그러면 이번 주 금요일 7시 '샤브하우스'에서 만나!"}
 ]
 
