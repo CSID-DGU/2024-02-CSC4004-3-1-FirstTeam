@@ -73,8 +73,8 @@ if __name__ == "__main__":
 
         # 스케줄 데이터 생성
         schedule_data = {
-            "name": "Winter Dinner",  # 대화 내용에 따라 이름을 지정
-            "detail": "A warm winter dinner meeting planned based on the conversation.",
+            "name": analyzed_data.get("name"),  # 대화 내용에 따라 이름을 지정
+            "detail": analyzed_data.get("detail", "Unknown"),
             "location": analyzed_data.get("location", "Unknown"),
             "start": datetime.strptime(f"{analyzed_data['date']} {analyzed_data['time']}", "%Y-%m-%d %H:%M:%S"),
             "end": None,  # 필요 시 종료 시간을 추가
