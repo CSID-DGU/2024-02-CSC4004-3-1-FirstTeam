@@ -1,5 +1,6 @@
 from flask import request, jsonify, Blueprint
 from Back.app.db import *
+from Back.app.ollama import *
 import requests  # AI API 호출을 위한 라이브러리 (예시)
 import traceback  # 오류 추적용
 from datetime import datetime
