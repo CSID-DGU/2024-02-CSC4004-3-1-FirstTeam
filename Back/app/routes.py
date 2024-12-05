@@ -23,6 +23,7 @@ def upload_firestore(data, roomId):
         schedule_collection = db.collection("Message").document(roomId).collection("schedule")
         print(f"[DEBUG] Schedule 컬렉션: {schedule_collection.id}")
 
+
         # JSON 데이터 처리 - Schedule
         print("[INFO] Schedule 데이터 처리 시작")
         try:
@@ -108,10 +109,21 @@ def getAI(roomID):
         if not message_list:
             return {"status": "success", "message": "No new messages since last_timestamp."}
 
+            # User 컬렉션에서 user_id와 매칭되는 name 가져오기
+        user_names = {}
+        for message in message_list:
+            user_id = message["user_id"]
+            if user_id not in user_names:  # 이미 조회된 user_id는 다시 검색하지 않음
+                user_doc = db.collection("User").document(user_id).get()
+                if user_doc.exists:
+                    user_names[user_id] = user_doc.to_dict().get("name", "Unknown")  # name 필드 가져오기
+                else:
+                    user_names[user_id] = "Unknown"  # 문서가 없으면 Unknown
+
         # 파싱된 메시지 (JSON 형태로 유지)
         parsed_messages = [
             {
-                "user_id": message["user_id"],
+                "user_id": user_names.get(message["user_id"], "Unknown"),
                 "content": message["content"]
             }
             for message in message_list
@@ -133,7 +145,6 @@ def getAI(roomID):
             #message_ref.update({"last_timestamp": new_last_timestamp})
 
         return jsonify({"status": "success", "message": "Schedule and Budget processed successfully"}), 200
-
 
 
     except Exception as e:
