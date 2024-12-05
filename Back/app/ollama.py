@@ -33,7 +33,7 @@ def analyze_conversation(conversation):
         Conversation:
         {prompt_conversation}
         
-        Respond with ONLY! a JSON object in Korean containing the following fields:
+pro        JSON 객체만 한국어로 응답하십시오. '''는 절대로 쓰지 마시오. 다음 필드를 포함합니다:
         - "name": (string) 이벤트 이름.
         - "start": (string) 모임 날짜. (형식: YYYY-MM-DD-HH:MM).
         - "end": (string) 모임 종료 시간. (형식: YYYY-MM-DD-HH:MM).
