@@ -18,12 +18,10 @@ def requestAI(ai_payload, roomId):
 
 def upload_firestore(data, roomId):
     try:
-        # Firestore의 Schedule 및 Budget 컬렉션 참조
+        # Firestore의 Schedule 컬렉션 참조
         print("[INFO] Firestore 컬렉션 참조 시작")
         schedule_collection = db.collection("Message").document(roomId).collection("schedule")
-        budget_collection = db.collection("Message").document(roomId).collection("budget")
         print(f"[DEBUG] Schedule 컬렉션: {schedule_collection.id}")
-        print(f"[DEBUG] Budget 컬렉션: {budget_collection.id}")
 
         # JSON 데이터 처리 - Schedule
         print("[INFO] Schedule 데이터 처리 시작")
@@ -40,11 +38,12 @@ def upload_firestore(data, roomId):
             print(f"[ERROR] Schedule 데이터 파싱 실패: {parse_error}")
             return jsonify({"status": "failure", "message": "Invalid schedule data format."}), 400
 
-        # Firestore에 데이터 삽입 (ID 자동 생성)
+        # Firestore에 Schedule 데이터 삽입 (ID 자동 생성)
         try:
             print("[INFO] Schedule 데이터 Firestore 삽입 시작")
-            doc_ref = schedule_collection.add(schedule_data)
-            print(f"[DEBUG] Firestore에 Schedule 데이터 삽입 성공. 문서 ID: {doc_ref[1].id}")
+            doc_ref = schedule_collection.add(schedule_data)  # 스케줄 문서 생성
+            schedule_doc_id = doc_ref[1].id  # 생성된 문서 ID 가져오기
+            print(f"[DEBUG] Firestore에 Schedule 데이터 삽입 성공. 문서 ID: {schedule_doc_id}")
         except Exception as firestore_error:
             print(f"[ERROR] Firestore에 Schedule 데이터 삽입 실패: {firestore_error}")
             return jsonify({"status": "failure", "message": "Failed to add schedule data."}), 500
@@ -52,6 +51,8 @@ def upload_firestore(data, roomId):
         # JSON 데이터 처리 - Budget
         print("[INFO] Budget 데이터 처리 시작")
         try:
+            # Schedule 문서의 하위 컬렉션으로 Budget 추가
+            budget_collection = schedule_collection.document(schedule_doc_id).collection("budget")
             for budget_item in data.get("budget", []):
                 budget_data = {
                     "name": budget_item.get("name", ""),
@@ -73,7 +74,6 @@ def upload_firestore(data, roomId):
         # 최종 에러 응답
         print(f"[ERROR] 예기치 못한 에러 발생: {e}")
         return jsonify({"status": "failure", "message": "Unexpected error occurred."}), 500
-
 
 
 @api.route('/ai/<roomID>', methods=['POST'])
