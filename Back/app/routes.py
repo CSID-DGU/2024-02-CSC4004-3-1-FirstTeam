@@ -43,7 +43,9 @@ def upload_firestore(data, roomId):
             print("[INFO] Schedule 데이터 Firestore 삽입 시작")
             doc_ref = schedule_collection.add(schedule_data)  # 스케줄 문서 생성
             schedule_doc_id = doc_ref[1].id  # 생성된 문서 ID 가져오기
+            schedule_collection.document(schedule_doc_id).update({"id": schedule_doc_id})  # ID 필드 추가
             print(f"[DEBUG] Firestore에 Schedule 데이터 삽입 성공. 문서 ID: {schedule_doc_id}")
+
         except Exception as firestore_error:
             print(f"[ERROR] Firestore에 Schedule 데이터 삽입 실패: {firestore_error}")
             return jsonify({"status": "failure", "message": "Failed to add schedule data."}), 500
