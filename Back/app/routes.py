@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import jsonify, Blueprint
 
 from Back.app.db import *
@@ -26,8 +28,8 @@ def upload_firestore(data, roomId):
         # JSON 데이터 처리 - Schedule
         schedule_data = {
             "name": data.get("name", ""),
-            "start": data.get("start"),
-            "end": data.get("end"),
+            "start": datetime.strptime(data["start"], "%Y-%m-%dT%H:%M:%S").timestamp() if data.get("start") else None,
+            "end": datetime.strptime(data["end"], "%Y-%m-%dT%H:%M:%S").timestamp() if data.get("end") else None,
             "location": data.get("location", ""),
             "detail": data.get("detail", "")
         }
