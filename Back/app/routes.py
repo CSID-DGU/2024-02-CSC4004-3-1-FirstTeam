@@ -58,7 +58,6 @@ def upload_firestore(data, roomId):
             budget_collection = schedule_collection.document(schedule_doc_id).collection("budget")
             for budget_item in data.get("budget", []):
                 budget_data = {
-                    "id":schedule_doc_id,
                     "name": budget_item.get("name", ""),
                     "category": budget_item.get("category", ""),
                     "amount": budget_item.get("amount", 0),
