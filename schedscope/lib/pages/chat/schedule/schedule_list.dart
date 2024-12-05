@@ -5,13 +5,11 @@ import 'package:omni_datetime_picker/omni_datetime_picker.dart';
 import 'budget.dart';
 
 class ScheduleList extends StatefulWidget {
-  final List<Map<String, dynamic>> schedules;
   final String roomId;
   final VoidCallback onDelete;
 
   const ScheduleList({
     super.key,
-    required this.schedules,
     required this.roomId,
     required this.onDelete,
   });
@@ -28,11 +26,30 @@ class _ScheduleListState extends State<ScheduleList> {
   final TextEditingController detailsController = TextEditingController();
 
   void showEditScheduleDialog(Map<String, dynamic> schedule) {
-    titleController.text = schedule['title'] ?? '';
-    dateController.text = schedule['date'] ?? '';
-    timeController.text = schedule['time'] ?? '';
+    titleController.text = schedule['name'] ?? '';
     locationController.text = schedule['location'] ?? '';
-    detailsController.text = schedule['details'] ?? '';
+    detailsController.text = schedule['detail'] ?? '';
+
+    // start와 end를 Timestamp 형식으로 처리
+    final Timestamp startTimestamp = schedule['start'];
+    final Timestamp endTimestamp = schedule['end'];
+    final DateTime startDate = startTimestamp.toDate().toLocal();
+    final DateTime endDate = endTimestamp.toDate().toLocal();
+
+    // 날짜 및 시간 형식 지정
+    String formattedDate;
+    if (startDate.year == endDate.year &&
+        startDate.month == endDate.month &&
+        startDate.day == endDate.day) {
+      formattedDate =
+          '${DateFormat('yy.MM.dd(EEE)').format(startDate)} ${DateFormat('HH:mm').format(startDate)} - ${DateFormat('HH:mm').format(endDate)}';
+    } else {
+      formattedDate =
+          '${DateFormat('yy.MM.dd(EEE) HH:mm').format(startDate)} 부터 ${DateFormat('yy.MM.dd(EEE) HH:mm').format(endDate)} 까지';
+    }
+    dateController.text = formattedDate;
+    timeController.text =
+        '${DateFormat('HH:mm').format(startDate)}~${DateFormat('HH:mm').format(endDate)}';
 
     showDialog(
       context: context,
@@ -247,21 +264,6 @@ class _ScheduleListState extends State<ScheduleList> {
           'detail': details,
         });
 
-        setState(() {
-          final index = widget.schedules
-              .indexWhere((schedule) => schedule['id'] == scheduleId);
-          if (index != -1) {
-            widget.schedules[index] = {
-              'id': scheduleId,
-              'title': title,
-              'date': date,
-              'time': time,
-              'location': location,
-              'details': details,
-            };
-          }
-        });
-
         // 입력 필드 초기화
         titleController.clear();
         dateController.clear();
@@ -279,205 +281,242 @@ class _ScheduleListState extends State<ScheduleList> {
 
   @override
   Widget build(BuildContext context) {
-    final NumberFormat formatter = NumberFormat('#,###');
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('Message')
+          .doc(widget.roomId)
+          .collection('schedule')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return ListView.builder(
-      itemCount: widget.schedules.length,
-      itemBuilder: (context, index) {
-        final schedule = widget.schedules[index];
-        return GestureDetector(
-          onTap: () =>
-              showEditScheduleDialog(schedule), // 일정 항목을 눌렀을 때 수정 다이얼로그 표시
-          child: Card(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(
-                width: 1,
-                color: Color(0xFFDBDBDB),
-              ),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            elevation: 4,
-            shadowColor: const Color(0x3F000000),
-            child: Padding(
-              padding: const EdgeInsets.all(15),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Left: Circle Number
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: const ShapeDecoration(
-                      color: Color(0xFF3498DB),
-                      shape: OvalBorder(),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${index + 1}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+        final schedules = snapshot.data!.docs;
+
+        return ListView.builder(
+          itemCount: schedules.length,
+          itemBuilder: (context, index) {
+            final schedule = schedules[index].data() as Map<String, dynamic>;
+
+            // 날짜 및 시간 형식 지정
+            final Timestamp startTimestamp = schedule['start'];
+            final Timestamp endTimestamp = schedule['end'];
+            final DateTime startDate = startTimestamp.toDate().toLocal();
+            final DateTime endDate = endTimestamp.toDate().toLocal();
+
+            String formattedDate;
+            if (startDate.year == endDate.year &&
+                startDate.month == endDate.month &&
+                startDate.day == endDate.day) {
+              formattedDate =
+                  '${DateFormat('yy.MM.dd(EEE)').format(startDate)} ${DateFormat('HH:mm').format(startDate)} - ${DateFormat('HH:mm').format(endDate)}';
+            } else {
+              formattedDate =
+                  '${DateFormat('yy.MM.dd(EEE) HH:mm').format(startDate)} 부터 ${DateFormat('yy.MM.dd(EEE) HH:mm').format(endDate)} 까지';
+            }
+
+            return GestureDetector(
+              onTap: () => showEditScheduleDialog({
+                'id': schedule['id'],
+                'name': schedule['name'],
+                'start': startTimestamp,
+                'end': endTimestamp,
+                'location': schedule['location'],
+                'detail': schedule['detail'],
+              }), // 일정 항목을 눌렀을 때 수정 다이얼로그 표시
+              child: Card(
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                  side: const BorderSide(
+                    width: 1,
+                    color: Color(0xFFDBDBDB),
+                  ),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                elevation: 4,
+                shadowColor: const Color(0x3F000000),
+                child: Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left: Circle Number
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: const ShapeDecoration(
+                          color: Color(0xFF3498DB),
+                          shape: OvalBorder(),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${index + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
+                      const SizedBox(width: 10),
 
-                  // Center: Schedule Details (Title and Date)
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start, // 왼쪽 정렬
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      // Center: Schedule Details (Title and Date)
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start, // 왼쪽 정렬
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Title
-                                  Text(
-                                    schedule['title'] ?? '',
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 18,
-                                      fontFamily: 'Inter',
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 5),
-
-                                  // Date
-                                  if (schedule['date'] != null &&
-                                      schedule['date']!.isNotEmpty) ...[
-                                    Text(
-                                      schedule['date']!,
-                                      style: const TextStyle(
-                                        color: Color(0xFF3498DB),
-                                        fontSize: 14,
-                                        fontFamily: 'Inter',
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 5),
-                                  ],
-                                ],
-                              ),
-                            ),
-
-                            // Right: Actions (Delete and Budget)
                             Row(
-                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.monetization_on_rounded,
-                                    color: Colors.black,
-                                    size: 25,
-                                  ),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            IndividualBudgetPage(
-                                          roomId: widget.roomId,
-                                          scheduleTitle:
-                                              schedule['title'] ?? '',
-                                          scheduleId: schedule['id'],
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Title
+                                      Text(
+                                        schedule['name'] ?? '',
+                                        style: const TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 18,
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w700,
                                         ),
                                       ),
-                                    );
-                                  },
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete,
-                                    color: Colors.black,
-                                    size: 25,
-                                  ),
-                                  onPressed: () async {
-                                    final scheduleId = schedule['id'];
+                                      const SizedBox(height: 5),
 
-                                    // 확인 대화상자 표시
-                                    final bool? confirmDelete =
-                                        await showDialog<bool>(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          title: const Text('삭제 확인'),
-                                          content:
-                                              const Text('정말로 이 일정을 삭제하시겠습니까?'),
-                                          actions: <Widget>[
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.of(context)
-                                                    .pop(false); // 취소
-                                              },
-                                              child: const Text('취소'),
+                                      // Date
+                                      if (formattedDate.isNotEmpty) ...[
+                                        Text(
+                                          formattedDate,
+                                          style: const TextStyle(
+                                            color: Color(0xFF3498DB),
+                                            fontSize: 14,
+                                            fontFamily: 'Inter',
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 5),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+
+                                // Right: Actions (Delete and Budget)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.monetization_on_rounded,
+                                        color: Colors.black,
+                                        size: 25,
+                                      ),
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                IndividualBudgetPage(
+                                              roomId: widget.roomId,
+                                              scheduleTitle:
+                                                  schedule['name'] ?? '',
+                                              scheduleId: schedule['id'],
                                             ),
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.of(context)
-                                                    .pop(true); // 확인
-                                              },
-                                              child: const Text('삭제'),
-                                            ),
-                                          ],
+                                          ),
                                         );
                                       },
-                                    );
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.delete,
+                                        color: Colors.black,
+                                        size: 25,
+                                      ),
+                                      onPressed: () async {
+                                        final scheduleId = schedule['id'];
 
-                                    // 사용자가 확인 버튼을 눌렀을 때만 삭제
-                                    if (confirmDelete == true) {
-                                      await FirebaseFirestore.instance
-                                          .collection('Message')
-                                          .doc(widget.roomId)
-                                          .collection('schedule')
-                                          .doc(scheduleId)
-                                          .delete();
+                                        // 확인 대화상자 표시
+                                        final bool? confirmDelete =
+                                            await showDialog<bool>(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              title: const Text('삭제 확인'),
+                                              content: const Text(
+                                                  '정말로 이 일정을 삭제하시겠습니까?'),
+                                              actions: <Widget>[
+                                                TextButton(
+                                                  onPressed: () {
+                                                    Navigator.of(context)
+                                                        .pop(false); // 취소
+                                                  },
+                                                  child: const Text('취소'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () {
+                                                    Navigator.of(context)
+                                                        .pop(true); // 확인
+                                                  },
+                                                  child: const Text('삭제'),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
 
-                                      widget.onDelete(); // 목록 새로고침
-                                    }
-                                  },
+                                        // 사용자가 확인 버튼을 눌렀을 때만 삭제
+                                        if (confirmDelete == true) {
+                                          await FirebaseFirestore.instance
+                                              .collection('Message')
+                                              .doc(widget.roomId)
+                                              .collection('schedule')
+                                              .doc(scheduleId)
+                                              .delete();
+
+                                          widget.onDelete(); // 목록 새로고침
+                                        }
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 10),
+
+                            // Location
+                            if (schedule['location'] != null &&
+                                schedule['location']!.isNotEmpty) ...[
+                              Text(
+                                schedule['location']!,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              const SizedBox(height: 5),
+                            ],
+
+                            // Details
+                            if (schedule['detail'] != null &&
+                                schedule['detail']!.isNotEmpty) ...[
+                              Text(
+                                schedule['detail']!,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                            ],
                           ],
                         ),
-                        const SizedBox(height: 10),
-
-                        // Location
-                        if (schedule['location'] != null &&
-                            schedule['location']!.isNotEmpty) ...[
-                          Text(
-                            schedule['location']!,
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                          const SizedBox(height: 5),
-                        ],
-
-                        // Details
-                        if (schedule['details'] != null &&
-                            schedule['details']!.isNotEmpty) ...[
-                          Text(
-                            schedule['details']!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                        ],
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
