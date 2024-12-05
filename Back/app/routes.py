@@ -72,6 +72,7 @@ def upload_firestore(data, roomId):
         print("[INFO] 모든 데이터 처리 완료. 성공 응답 반환")
         return jsonify({"status": "success", "message": "Data uploaded successfully."}), 200
 
+
     except Exception as e:
         # 최종 에러 응답
         print(f"[ERROR] 예기치 못한 에러 발생: {e}")
