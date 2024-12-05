@@ -14,54 +14,66 @@ def requestAI(ai_payload, roomId):
     ai_response_data = analyze_conversation(ai_payload)
 
     # AI 응답 데이터를 Firestore에 저장
-    upload_firestore(ai_response_data, roomId)
-
-    # 성공 여부 응답
-    return jsonify({"status": "success", "message": "AI response processed and stored successfully"}), 200
+    return ai_response_data
 
 def upload_firestore(data, roomId):
     try:
-        # Firestore의 Schedule 및 Budget 컬렉션 참조
+        # Firestore의 Schedule 컬렉션 참조
+        print("[INFO] Firestore 컬렉션 참조 시작")
         schedule_collection = db.collection("Message").document(roomId).collection("schedule")
-        budget_collection = db.collection("Message").document(roomId).collection("budget")
+        print(f"[DEBUG] Schedule 컬렉션: {schedule_collection.id}")
 
         # JSON 데이터 처리 - Schedule
-        schedule_data = {
-            "name": data.get("name", ""),
-            "start": datetime.strptime(data["start"], "%Y-%m-%dT%H:%M:%S").timestamp() if data.get("start") else None,
-            "end": datetime.strptime(data["end"], "%Y-%m-%dT%H:%M:%S").timestamp() if data.get("end") else None,
-            "location": data.get("location", ""),
-            "detail": data.get("detail", "")
-        }
+        print("[INFO] Schedule 데이터 처리 시작")
+        try:
+            schedule_data = {
+                "name": data.get("name", ""),
+                "start": datetime.strptime(data["start"], "%Y-%m-%d-%H:%M") if data.get("start") else None,
+                "end": datetime.strptime(data["end"], "%Y-%m-%d-%H:%M") if data.get("end") else None,
+                "location": data.get("location", ""),
+                "detail": data.get("detail", "")
+            }
+            print(f"[DEBUG] 파싱된 Schedule 데이터: {schedule_data}")
+        except Exception as parse_error:
+            print(f"[ERROR] Schedule 데이터 파싱 실패: {parse_error}")
+            return jsonify({"status": "failure", "message": "Invalid schedule data format."}), 400
 
-        # ID가 있는 경우 수정, 없으면 새 문서 생성
-        if "id" in data and data["id"]:  # AI 응답에 'id' 필드가 있는 경우
-            existing_schedule_doc_ref = schedule_collection.document(data["id"])
-            if existing_schedule_doc_ref.get().exists:  # 문서가 존재하면 업데이트
-                existing_schedule_doc_ref.update(schedule_data)
-            else:  # 문서가 존재하지 않으면 새로 생성
-                new_schedule_doc_ref = schedule_collection.document(data["id"])
-                schedule_data["id"] = new_schedule_doc_ref.id
-                new_schedule_doc_ref.set(schedule_data)
-        else:  # 'id'가 없으면 새 문서 생성
-            new_schedule_doc_ref = schedule_collection.document()
-            schedule_data["id"] = new_schedule_doc_ref.id
-            new_schedule_doc_ref.set(schedule_data)
+        # Firestore에 Schedule 데이터 삽입 (ID 자동 생성)
+        try:
+            print("[INFO] Schedule 데이터 Firestore 삽입 시작")
+            doc_ref = schedule_collection.add(schedule_data)  # 스케줄 문서 생성
+            schedule_doc_id = doc_ref[1].id  # 생성된 문서 ID 가져오기
+            print(f"[DEBUG] Firestore에 Schedule 데이터 삽입 성공. 문서 ID: {schedule_doc_id}")
+        except Exception as firestore_error:
+            print(f"[ERROR] Firestore에 Schedule 데이터 삽입 실패: {firestore_error}")
+            return jsonify({"status": "failure", "message": "Failed to add schedule data."}), 500
 
         # JSON 데이터 처리 - Budget
-        for budget_item in data.get("budget", []):
-            budget_collection.add({
-                "name": budget_item.get("name", ""),
-                "category": budget_item.get("category", ""),
-                "amount": budget_item.get("amount", 0),
-            })
+        print("[INFO] Budget 데이터 처리 시작")
+        try:
+            # Schedule 문서의 하위 컬렉션으로 Budget 추가
+            budget_collection = schedule_collection.document(schedule_doc_id).collection("budget")
+            for budget_item in data.get("budget", []):
+                budget_data = {
+                    "name": budget_item.get("name", ""),
+                    "category": budget_item.get("category", ""),
+                    "amount": budget_item.get("amount", 0),
+                }
+                print(f"[DEBUG] Budget 데이터 추가: {budget_data}")
+                budget_collection.add(budget_data)
+            print("[INFO] Budget 데이터 Firestore 삽입 완료")
+        except Exception as budget_error:
+            print(f"[ERROR] Budget 데이터 Firestore 삽입 실패: {budget_error}")
+            return jsonify({"status": "failure", "message": "Failed to add budget data."}), 500
 
-        # 성공 응답
-        return jsonify({"status": "success", "message": "Schedule and Budget processed successfully"}), 200
+        # 성공 응답 반환
+        print("[INFO] 모든 데이터 처리 완료. 성공 응답 반환")
+        return jsonify({"status": "success", "message": "Data uploaded successfully."}), 200
 
     except Exception as e:
-        # 에러 응답
-        return jsonify({"status": "failure", "message": str(e)}), 500
+        # 최종 에러 응답
+        print(f"[ERROR] 예기치 못한 에러 발생: {e}")
+        return jsonify({"status": "failure", "message": "Unexpected error occurred."}), 500
 
 
 @api.route('/ai/<roomID>', methods=['POST'])
@@ -104,7 +116,8 @@ def getAI(roomID):
             for message in message_list
         ]
 
-        requestAI(parsed_messages, roomID)
+        upload_firestore(requestAI(parsed_messages, roomID), roomID)
+
 
         # 새로운 메시지 중 가장 최근의 timestamp 가져오기
         new_last_timestamp = message_list[-1]["timestamp"]
@@ -113,10 +126,13 @@ def getAI(roomID):
         if not room_doc.exists:
             # last_timestamp 필드가 없을 경우 삽입
             message_ref.set({"last_timestamp": new_last_timestamp}, merge=True)  # merge=True로 기존 데이터 유지
-        else:
+
+        #else:
             # last_timestamp 필드가 있을 경우 업데이트
-            message_ref.update({"last_timestamp": new_last_timestamp})
-        print(f"{parsed_messages}")
+            #message_ref.update({"last_timestamp": new_last_timestamp})
+
+        return jsonify({"status": "success", "message": "Schedule and Budget processed successfully"}), 200
+
 
 
     except Exception as e:
