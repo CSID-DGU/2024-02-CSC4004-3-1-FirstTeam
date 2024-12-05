@@ -48,6 +48,7 @@ def analyze_conversation(conversation):
         response.raise_for_status()  # HTTP 에러 검사
         print(response.json())
         result = response.json().get('response', '')
+        print(result)
         return json.loads(result)  # 안전하게 JSON 파싱
     except requests.exceptions.RequestException as e:
         print(f"Error during API call: {e}")
