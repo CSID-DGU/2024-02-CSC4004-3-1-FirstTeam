@@ -399,7 +399,7 @@ class _SchedulePageState extends State<SchedulePage> {
           padding:
               const EdgeInsets.only(bottom: 140.0), // bottomSheet 높이만큼 여백 추가
           child: ScheduleList(
-            schedules: schedules,
+            // schedules: schedules,
             roomId: widget.roomId,
             onDelete: _fetchSchedules, // 삭제 후 새로고침
           ),
