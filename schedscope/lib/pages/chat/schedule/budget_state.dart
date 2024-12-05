@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // 숫자 포맷을 위한 패키지
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BudgetState extends ChangeNotifier {
@@ -58,7 +57,7 @@ class BudgetState extends ChangeNotifier {
     }
   }
 
-// 비용 업데이트
+  // 비용 업데이트
   Future<void> updateBudgetItem(String roomId, String scheduleId, int index,
       String updatedName, int updatedAmount) async {
     final budgetItems = schedules[scheduleId];
@@ -82,38 +81,26 @@ class BudgetState extends ChangeNotifier {
     }
   }
 
-  // 예산 항목 가져오기
-  Future<void> fetchBudgetItems(String roomId, String scheduleId) async {
-    final CollectionReference budgetCollection = FirebaseFirestore.instance
+  // 예산 항목 스트림 가져오기
+  Stream<List<Map<String, dynamic>>> getBudgetItemsStream(
+      String roomId, String scheduleId) {
+    return FirebaseFirestore.instance
         .collection('Message')
         .doc(roomId)
         .collection('schedule')
         .doc(scheduleId)
-        .collection('budget');
-
-    final QuerySnapshot snapshot = await budgetCollection.get();
-
-    // if (snapshot.docs.isEmpty) {
-    //   // budget 컬렉션이 없으면 새로 생성
-    //   await budgetCollection.add({
-    //     'amount': 0,
-    //     'category': '',
-    //     'name': 'Initial Budget Item',
-    //   });
-    // }
-
-    final List<Map<String, dynamic>> fetchedBudgetItems =
-        snapshot.docs.map((doc) {
-      final data = doc.data() as Map<String, dynamic>;
-      return {
-        'id': doc.id,
-        'amount': data['amount'],
-        'category': data['category'],
-        'name': data['name'],
-      };
-    }).toList();
-
-    schedules[scheduleId] = fetchedBudgetItems;
-    notifyListeners(); // 상태 업데이트
+        .collection('budget')
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'amount': data['amount'],
+          'category': data['category'],
+          'name': data['name'],
+        };
+      }).toList();
+    });
   }
 }
