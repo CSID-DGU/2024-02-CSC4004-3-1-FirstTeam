@@ -28,8 +28,8 @@ def upload_firestore(data, roomId):
         try:
             schedule_data = {
                 "name": data.get("name", ""),
-                "start": datetime.strptime(data["start"], "%Y-%m-%d-%H:%M").timestamp() if data.get("start") else None,
-                "end": datetime.strptime(data["end"], "%Y-%m-%d-%H:%M").timestamp() if data.get("end") else None,
+                "start": datetime.strptime(data["start"], "%Y-%m-%d-%H:%M") if data.get("start") else None,
+                "end": datetime.strptime(data["end"], "%Y-%m-%d-%H:%M") if data.get("end") else None,
                 "location": data.get("location", ""),
                 "detail": data.get("detail", "")
             }
