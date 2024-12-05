@@ -316,7 +316,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
 // POST 요청을 보내는 함수
   Future<void> sendPostRequest(String roomId) async {
-    const String apiUrl = 'http://192.168.89.57:5000/ai/    ${roomId}'; // 임시 API URL
+    final String apiUrl = 'http://192.168.89.57:5000/ai/$roomId'; // 임시 API URL
 
     try {
       final response = await http.post(

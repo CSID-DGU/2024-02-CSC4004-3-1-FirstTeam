@@ -82,12 +82,12 @@ class _LoginPageState extends State<LoginPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               /* 앱 로고 이미지 */
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: Image.network(
-                  'https://cdn-icons-png.flaticon.com/512/1980/1980736.png',
-                  fit: BoxFit.cover,
+              const SizedBox(
+                width: 300,
+                height: 100,
+                child: Image(
+                  image: AssetImage('assets/logo.png'),
+                  fit: BoxFit.contain,
                 ),
               ),
               const SizedBox(height: 40),
