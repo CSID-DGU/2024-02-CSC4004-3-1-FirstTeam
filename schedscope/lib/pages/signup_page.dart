@@ -26,6 +26,19 @@ class _SignupPageState extends State<SignupPage> {
     });
   }
 
+  Future<void> _createRoomMember() async {
+    final FirebaseAuth auth = FirebaseAuth.instance;
+    final FirebaseFirestore firestore = FirebaseFirestore.instance;
+    final user = auth.currentUser;
+
+    if (user != null) {
+      final roomMemberRef = firestore.collection('RoomMember').doc(user.uid);
+      await roomMemberRef.set({
+        'room_id_list': [],
+      });
+    }
+  }
+
   Future<void> _signup() async {
     if (_passwordController.text != _confirmPasswordController.text) {
       String message = '비밀번호가 일치하지 않습니다.';
@@ -61,6 +74,8 @@ class _SignupPageState extends State<SignupPage> {
               'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
         });
         print("Firestore에 데이터 저장 완료"); //log
+
+        await _createRoomMember(); // RoomMember 컬렉션 생성
       } catch (e) {
         print("Firestore 저장 오류: $e"); //log
       }
