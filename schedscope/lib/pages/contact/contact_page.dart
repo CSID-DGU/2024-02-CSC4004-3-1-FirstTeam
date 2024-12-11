@@ -212,36 +212,60 @@ class _ContactPageState extends State<ContactPage> {
       body: Container(
         color: const Color(0xFFFFFFFF), // 배경색 변경
         padding: const EdgeInsets.all(10),
-        child: ListView.builder(
-          itemCount: contacts.length,
-          itemBuilder: (context, index) {
-            final contact = contacts[index];
-            return Container(
-              margin: const EdgeInsets.symmetric(vertical: 5), // 위아래 간격 추가
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                    vertical: 10, horizontal: 15), // 패딩 추가
-                tileColor: Colors.white, // 타일 배경색
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10), // 모서리 둥글게
+        child: contacts.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.group,
+                      size: 80,
+                      color: Colors.grey[300],
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      '아직 등록된 친구가 없습니다.\n새로운 친구를 추가해보세요!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
-                leading: CircleAvatar(
-                  backgroundImage: NetworkImage(contact['profile_image'] ?? ''),
-                ),
-                title: Text(
-                  contact['name'] ?? 'Unknown',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                onTap: () {
-                  _showContactProfile(contact);
+              )
+            : ListView.builder(
+                itemCount: contacts.length,
+                itemBuilder: (context, index) {
+                  final contact = contacts[index];
+                  return Container(
+                    margin:
+                        const EdgeInsets.symmetric(vertical: 5), // 위아래 간격 추가
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 15), // 패딩 추가
+                      tileColor: Colors.white, // 타일 배경색
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10), // 모서리 둥글게
+                      ),
+                      leading: CircleAvatar(
+                        backgroundImage:
+                            NetworkImage(contact['profile_image'] ?? ''),
+                      ),
+                      title: Text(
+                        contact['name'] ?? 'Unknown',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onTap: () {
+                        _showContactProfile(contact);
+                      },
+                    ),
+                  );
                 },
               ),
-            );
-          },
-        ),
       ),
     );
   }
