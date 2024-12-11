@@ -125,6 +125,50 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final CollectionReference messageRef =
         _firestore.collection('Message').doc(roomId).collection('messages');
 
+    // 확인 다이얼로그 표시
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Center(child: Text('방 나가기')),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 10), // 타이틀과 콘텐츠 사이의 간격
+              Text('정말로 해당 채팅방을 나가시겠습니까?\n'),
+            ],
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20.0, vertical: 10.0), // 위아래 간격 조정
+          actions: <Widget>[
+            Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(false); // 취소
+                    },
+                    child: const Text('취소'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(true); // 확인
+                    },
+                    child: const Text('확인'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) {
+      return; // 사용자가 확인을 누르지 않으면 함수 종료
+    }
+
     await _firestore.runTransaction((transaction) async {
       final roomSnapshot = await transaction.get(roomRef);
       final userSnapshot = await transaction.get(userRef);
