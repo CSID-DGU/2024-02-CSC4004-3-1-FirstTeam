@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/alert_dialog.dart';
 import 'edit_profile_page.dart';
+import 'package:flutter/services.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -12,6 +13,7 @@ class SettingPage extends StatefulWidget {
 }
 
 class _SettingPageState extends State<SettingPage> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   User? _user;
   DocumentSnapshot<Map<String, dynamic>>? _userData;
 
@@ -101,6 +103,30 @@ class _SettingPageState extends State<SettingPage> {
                           .textTheme
                           .titleMedium
                           ?.copyWith(fontSize: 16 * 1.5),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.copy),
+                          label: const Text('친구 코드 복사하기'),
+                          onPressed: () {
+                            Clipboard.setData(
+                                ClipboardData(text: _auth.currentUser!.uid));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('친구 코드가 클립보드에 복사되었습니다.')),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            textStyle: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(fontSize: 14),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
 
