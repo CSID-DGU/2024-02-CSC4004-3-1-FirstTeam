@@ -215,57 +215,82 @@ class _ChatRoomListState extends State<ChatRoomList> with RouteAware {
       body: Container(
         color: const Color(0xffffffff), // 배경색 변경
         padding: const EdgeInsets.all(10),
-        child: ListView.builder(
-          itemCount: chatRooms.length,
-          itemBuilder: (context, index) {
-            final chatRoom = chatRooms[index];
-            return Container(
-              margin: const EdgeInsets.symmetric(vertical: 5), // 위아래 간격 추가
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                    vertical: 10, horizontal: 15), // 패딩 추가
-                tileColor: Colors.white, // 타일 배경색
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10), // 모서리 둥글게
-                ),
-                leading: CircleAvatar(
-                  backgroundColor: Colors.blue,
-                  child: Text(
-                    chatRoom['name']![0], // 채팅방 이름 첫 글자 표시
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-                title: Text(
-                  chatRoom['name']!,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+        child: chatRooms.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.group, color: Colors.grey), // 아이콘 추가
-                    const SizedBox(width: 4), // 아이콘과 텍스트 사이의 간격
-                    Text(
-                      '${chatRoom['participants']}명', // 참여자 수를 오른쪽에 표시
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    Icon(
+                      Icons.chat_rounded,
+                      size: 80,
+                      color: Colors.grey[300],
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      '아직 참여한 채팅방이 없습니다.\n새로운 채팅방을 추가해보세요!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey,
+                      ),
                     ),
                   ],
                 ),
-                onTap: () {
-                  // 채팅방 항목을 클릭했을 때 동작
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatRoomScreen(chatRoom: chatRoom),
+              )
+            : ListView.builder(
+                itemCount: chatRooms.length,
+                itemBuilder: (context, index) {
+                  final chatRoom = chatRooms[index];
+                  return Container(
+                    margin:
+                        const EdgeInsets.symmetric(vertical: 5), // 위아래 간격 추가
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 15), // 패딩 추가
+                      tileColor: Colors.white, // 타일 배경색
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10), // 모서리 둥글게
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.blue,
+                        child: Text(
+                          chatRoom['name']![0], // 채팅방 이름 첫 글자 표시
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      title: Text(
+                        chatRoom['name']!,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.group, color: Colors.grey), // 아이콘 추가
+                          const SizedBox(width: 4), // 아이콘과 텍스트 사이의 간격
+                          Text(
+                            '${chatRoom['participants']}명', // 참여자 수를 오른쪽에 표시
+                            style: const TextStyle(
+                                fontSize: 14, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        // 채팅방 항목을 클릭했을 때 동작
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ChatRoomScreen(chatRoom: chatRoom),
+                          ),
+                        );
+                      },
                     ),
                   );
                 },
               ),
-            );
-          },
-        ),
       ),
       floatingActionButton: Stack(
         children: [
@@ -296,7 +321,7 @@ class _ChatRoomListState extends State<ChatRoomList> with RouteAware {
                     onPressed: () {
                       _joinChatRoom(context);
                     },
-                    child: const Text('새 채팅 참여하기'),
+                    child: const Text('채팅방 참여하기'),
                   ),
                   const SizedBox(height: 10), // 버튼 사이의 간격
                 ],
