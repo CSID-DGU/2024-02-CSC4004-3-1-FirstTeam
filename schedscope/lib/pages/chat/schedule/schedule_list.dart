@@ -294,6 +294,30 @@ class _ScheduleListState extends State<ScheduleList> {
 
         final schedules = snapshot.data!.docs;
 
+        if (schedules.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.event_note,
+                  size: 80,
+                  color: Colors.grey[300],
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  '아직 등록된 일정이 없습니다.\n새로운 일정을 추가해보세요!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
         return ListView.builder(
           itemCount: schedules.length,
           itemBuilder: (context, index) {
